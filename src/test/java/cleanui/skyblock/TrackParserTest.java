@@ -22,4 +22,29 @@ class TrackParserTest {
 		assertTrue(TrackParser.isPane("minecraft:red_stained_glass_pane"));
 		assertFalse(TrackParser.isPane("minecraft:wheat"));
 	}
+
+	/** Lore from the real "Combat Skill" menu (game log, 2026-11-21). */
+	@Test
+	void skillLoreStates() {
+		var done = java.util.List.of("Rewards:", "  Warrior XXV", "    Deal 96➜100% more damage to mobs.", "", "UNLOCKED");
+		var current = java.util.List.of("Rewards:", "  Warrior XXVIII", "    Deal 108➜112% more damage to mobs.", "",
+				"Progress: 66.8%", "                          667,615.3/1M");
+		var locked = java.util.List.of("Rewards:", "  Warrior XXXIV", "    Deal 132➜136% more damage to mobs.");
+		assertEquals(State.DONE, TrackParser.stateFromLore(done));
+		assertEquals(State.CURRENT, TrackParser.stateFromLore(current));
+		assertEquals(State.LOCKED, TrackParser.stateFromLore(locked));
+		assertNull(TrackParser.progress(done)); // the "100%" in the reward text is not progress
+		var p = TrackParser.progress(current);
+		assertEquals(0.668f, p.percent(), 1e-4);
+		assertEquals("667,615.3", p.done());
+		assertEquals("1M", p.total());
+	}
+
+	@Test
+	void skillXp() {
+		assertEquals(111_672_425L, TrackParser.xpFor(60));
+		assertEquals(55_172_425L, TrackParser.xpFor(50));
+		assertEquals(60, TrackParser.maxLevel("Combat"));
+		assertEquals(-1, TrackParser.maxLevel("Runecrafting"));
+	}
 }

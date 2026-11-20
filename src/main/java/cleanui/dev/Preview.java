@@ -62,6 +62,7 @@ public final class Preview {
 			new Shot("collections", Preview::fakeCollections, -1, -1),
 			new Shot("collections-farming", Preview::fakeFarmingCollections, 330, 230),
 			new Shot("track-skill", Preview::fakeSkillTrack, 452, 266),
+			new Shot("track-combat", Preview::fakeCombatTrack, 290, 266),
 			new Shot("track-collection", Preview::fakeCollectionTrack, -1, -1),
 			new Shot("bestiary", Preview::fakeBestiary, -1, -1),
 			new Shot("bestiary-hub", Preview::fakeBestiaryHub, -1, -1),
@@ -204,6 +205,25 @@ public final class Preview {
 		put(c, 48, Items.ARROW, "Go Back");
 		put(c, 53, Items.ARROW, "Next Page");
 		return CleanUi.pageFor("Farming Skill", menu(mc, c, "Farming Skill"));
+	}
+
+	/** Real "Combat Skill" layout (game log, 2026-11-21): lore says UNLOCKED / Progress; XXV and XXXV are items. */
+	private static Screen fakeCombatTrack(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		int[] path = {0, 9, 18, 27, 28, 29, 20, 11, 2, 3, 4, 13, 22, 31, 32, 33, 24, 15, 6, 7, 8, 17};
+		for (int i = 0; i < path.length; i++) {
+			int level = 17 + i;
+			String r = CollectionParser.roman(level);
+			List<String> lore = new ArrayList<>(List.of("Rewards:", "  Warrior " + r, "    Deal " + (level * 4 - 4) + "➜" + level * 4 + "% more damage to mobs.",
+					"  +0.5% Crit Chance", "  +20 SkyBlock XP"));
+			if (level <= 27) lore.addAll(List.of("", "UNLOCKED"));
+			if (level == 28) lore.addAll(List.of("", "Progress: 66.8%", "                          667,615.3/1M"));
+			Item item = level == 25 || level == 35 ? Items.NETHER_STAR : pane(level <= 27 ? DyeColor.LIME : level == 28 ? DyeColor.YELLOW : DyeColor.RED);
+			put(c, path[i], item, "Combat Level " + r, lore.toArray(String[]::new));
+		}
+		put(c, 48, Items.ARROW, "Go Back");
+		put(c, 53, Items.ARROW, "Next Page");
+		return CleanUi.pageFor("Combat Skill", menu(mc, c, "Combat Skill"));
 	}
 
 	private static Screen fakeCollectionTrack(Minecraft mc) {

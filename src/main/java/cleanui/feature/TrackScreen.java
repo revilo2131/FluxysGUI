@@ -38,7 +38,7 @@ public final class TrackScreen extends MenuPage {
 	private static final Pattern SKILL = Pattern.compile("^(.+) Skill$");
 	private static final Pattern COLLECTION = Pattern.compile("^(.+) Collection$");
 	private static final int NODE_W = 22, NODE_H = 18, NODE_STEP = 26, ROW_STEP = 26;
-	private static final int CARD_Y = 24, CARD_H = 40, TRACK_Y = 84, NOT_A_TRACK_MS = 800;
+	private static final int CARD_Y = 24, CARD_H = 42, TRACK_Y = 84, NOT_A_TRACK_MS = 800;
 
 	private record Node(MenuItem item, TrackParser.Tier tier, State state, int x, int y) {
 		boolean contains(double mx, double my) {
@@ -50,7 +50,7 @@ public final class TrackScreen extends MenuPage {
 	private final boolean collection;
 	private final long openedAt = System.currentTimeMillis();
 	private final Map<Integer, Anim> hover = new HashMap<>();
-	private final Anim cardBar = new Anim(0f, 5f);
+	private final Anim cardBar = new Anim(0f, 5f), maxBar = new Anim(0f, 5f);
 	private Button prev, next;
 	private int prevSlot = -1, nextSlot = -1;
 	private MenuItem info;
@@ -100,18 +100,22 @@ public final class TrackScreen extends MenuPage {
 		for (MenuItem item : items) {
 			String name = item.name();
 			String id = BuiltInRegistries.ITEM.getKey(item.stack().getItem()).toString();
+			// special reward levels (e.g. Combat XXV with Power Stones) are real items, not panes
+			boolean rewardItem = item.lore().stream().anyMatch(l -> l.startsWith("Reward")) || TrackParser.marksUnlocked(item.lore());
 			if (name.equals("Previous Page")) prevSlot = item.slot();
 			else if (name.equals("Next Page")) nextSlot = item.slot();
-			else if (TrackParser.isPane(id) && TrackParser.tier(name) != null) tiers.add(item);
+			else if ((TrackParser.isPane(id) || rewardItem) && TrackParser.tier(name) != null) tiers.add(item);
 			else if (info == null && !name.isEmpty() && !NAV.contains(name) && !TrackParser.isPane(id)) info = item;
 		}
 		tiers.sort(Comparator.comparingInt(i -> TrackParser.tier(i.name()).tier()));
+		// skill menus say "UNLOCKED" / "Progress:" in the lore; otherwise the pane colour tells
+		boolean loreStates = tiers.stream().anyMatch(i -> TrackParser.marksUnlocked(i.lore()));
 		int perRow = BW / NODE_STEP;
 		List<Node> nodes = new ArrayList<>();
 		for (int i = 0; i < tiers.size(); i++) {
 			MenuItem item = tiers.get(i);
 			String id = BuiltInRegistries.ITEM.getKey(item.stack().getItem()).toString();
-			nodes.add(new Node(item, TrackParser.tier(item.name()), TrackParser.state(id),
+			nodes.add(new Node(item, TrackParser.tier(item.name()), loreStates ? TrackParser.stateFromLore(item.lore()) : TrackParser.state(id),
 					bx() + (i % perRow) * NODE_STEP, by() + TRACK_Y + (i / perRow) * ROW_STEP));
 		}
 		return nodes;
@@ -139,7 +143,7 @@ public final class TrackScreen extends MenuPage {
 		g.text(font, summary, x, y + 5, Theme.argb(Theme.TITLE, a), true);
 		if (reached != null) Theme.badge(g, font, label(reached.tier()), x + font.width(summary) + font.width(label(reached.tier())) + 5, y + 4, Theme.ACCENT, a);
 
-		extractCard(g, x, y + CARD_Y, a);
+		extractCard(g, nodes, x, y + CARD_Y, a);
 
 		Theme.divider(g, font, collection ? "TIERS" : "LEVELS", x, y + TRACK_Y - 14, BW, a);
 		Node hovered = null;
@@ -187,8 +191,50 @@ public final class TrackScreen extends MenuPage {
 		return tier.arabic() ? String.valueOf(tier.tier()) : CollectionParser.roman(tier.tier());
 	}
 
-	/** Header card: the skill/collection item, its name, and its progress line and bar. */
-	private void extractCard(GuiGraphicsExtractor g, int x, int y, float a) {
+	/**
+	 * Header card from the tiers: the level you're at, a bar to the next level (from the tier in
+	 * progress) and, for skills, a second bar for total XP to max level. Falls back to the info item.
+	 */
+	private void extractCard(GuiGraphicsExtractor g, List<Node> nodes, int x, int y, float a) {
+		Node reached = null, current = null;
+		for (Node n : nodes) {
+			if (n.state() == State.DONE) reached = n;
+			if (current == null && n.state() == State.CURRENT) current = n;
+		}
+		TrackParser.Progress p = current != null ? TrackParser.progress(current.item().lore()) : null;
+		if (p == null || p.percent() == null) {
+			extractInfoCard(g, x, y, a);
+			return;
+		}
+		Theme.box(g, x, y, BW, CARD_H, Theme.ROW, a);
+		Theme.slot(g, info != null ? info.stack() : new ItemStack(minecraftIcon()), x + 8, y + (CARD_H - 18) / 2, 1f, a);
+		int tx = x + 32, right = x + BW - 8, level = reached != null ? reached.tier().tier() : 0;
+		String name = title.getString() + " " + (reached != null ? label(reached.tier()) : "0");
+		g.text(font, name, tx, y + 5, Theme.argb(Theme.TITLE, a), true);
+		String nextText = "Next: " + label(current.tier()) + "  " + String.format("%.1f%%", p.percent() * 100);
+		g.text(font, nextText, right - font.width(nextText), y + 5, Theme.argb(Theme.ACCENT, a), true);
+		cardBar.target(p.percent());
+		String amount = p.done() != null ? SkillParser.compact(p.done()) + " / " + SkillParser.compact(p.total()) + " XP" : null;
+		Theme.bar(g, font, tx, y + 16, right - tx, 10, cardBar.get(), Theme.FRAME_DIM, amount, a);
+
+		int max = collection ? -1 : TrackParser.maxLevel(title.getString());
+		if (max > 0 && p.done() != null) {
+			long have = level >= max ? TrackParser.xpFor(max) : TrackParser.totalXp(level, p.done()), need = TrackParser.xpFor(max);
+			String lbl = "To " + max;
+			g.text(font, lbl, tx, y + 30, Theme.argb(Theme.TEXT_MUTED, a), true);
+			int bx = tx + font.width(lbl) + 6;
+			maxBar.target(Math.clamp((float) have / need, 0f, 1f));
+			Theme.bar(g, font, bx, y + 29, right - bx, 10, maxBar.get(), Theme.ACCENT,
+					SkillParser.compact(String.valueOf(have)) + " / " + SkillParser.compact(String.valueOf(need)) + " XP", a);
+		}
+	}
+
+	private net.minecraft.world.item.Item minecraftIcon() {
+		return collection ? Items.PAINTING : Items.DIAMOND_SWORD;
+	}
+
+	/** Card from the menu's own info item: its name, and its progress line and bar. */
+	private void extractInfoCard(GuiGraphicsExtractor g, int x, int y, float a) {
 		Theme.box(g, x, y, BW, CARD_H, Theme.ROW, a);
 		ItemStack icon = info != null ? info.stack() : new ItemStack(Items.BOOK);
 		Theme.slot(g, icon, x + 8, y + (CARD_H - 18) / 2, 1f, a);
@@ -225,12 +271,7 @@ public final class TrackScreen extends MenuPage {
 
 	@Override
 	protected boolean clicked(MouseButtonEvent event, boolean doubleClick) {
-		if (super.clicked(event, doubleClick)) return true;
-		for (Node n : nodes())
-			if (n.contains(event.x(), event.y())) {
-				click(n.item().slot(), event.button());
-				return true;
-			}
-		return false;
+		// tiers are hover-only: clicking one does nothing (paging and Back still work)
+		return super.clicked(event, doubleClick);
 	}
 }

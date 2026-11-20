@@ -82,7 +82,8 @@ public abstract class MenuPage extends Window {
 	 */
 	protected void logMenuOnce(List<MenuItem> items) {
 		String title = getTitle().getString() + " / " + original.getTitle().getString();
-		if (items.isEmpty() || !LOGGED_MENUS.add(title)) return;
+		// wait a second: Hypixel fills big menus over several packets, the first frame sees only part
+		if (items.isEmpty() || System.currentTimeMillis() - openedAt < 1000 || !LOGGED_MENUS.add(title)) return;
 		StringBuilder sb = new StringBuilder("[Clean UI] Menu '" + original.getTitle().getString() + "':");
 		for (MenuItem item : items) sb.append("\n  slot ").append(item.slot()).append(" '").append(item.name()).append("' ").append(item.lore());
 		LOGGER.info(sb.toString());
