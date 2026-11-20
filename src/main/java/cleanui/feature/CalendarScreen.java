@@ -88,7 +88,7 @@ public final class CalendarScreen extends MenuPage {
 		extractMonthEvents(g, x, y + GRID_Y + 4 * STEP + 7, a);
 
 		int lx = x + LIST_X, lw = BW - LIST_X;
-		Theme.label(g, font, "UPCOMING", lx, y + 1, a);
+		Theme.divider(g, font, "UPCOMING", lx, y + 1, lw, a);
 		List<Events.Occurrence> list = Events.upcoming(now);
 		for (int i = 0; i < Math.min(ROWS, list.size()); i++)
 			extractEventRow(g, font, list.get(i), now, lx, y + 13 + i * ROW_STEP, lw, a);
@@ -107,7 +107,7 @@ public final class CalendarScreen extends MenuPage {
 			List<Events.Event> events = Events.on(viewYear, viewMonth, day);
 
 			int bg = isToday ? Theme.mix(Theme.ROW, Theme.ACCENT, 0.35f) : hovered ? Theme.ROW_HOVER : Theme.ROW;
-			Theme.box(g, cx, cy, CELL, CELL, bg, pageAlpha, isToday ? Theme.ACCENT : hovered ? Theme.TEXT_MUTED : Theme.LINE, pageAlpha);
+			Theme.box(g, cx, cy, CELL, CELL, bg, pageAlpha, isToday ? Theme.ACCENT : hovered ? Theme.FRAME : Theme.LINE, pageAlpha);
 			String n = Integer.toString(day);
 			g.text(font, n, cx + (CELL - font.width(n)) / 2, cy + 5, Theme.argb(Theme.TEXT, pageAlpha), true);
 
@@ -129,7 +129,7 @@ public final class CalendarScreen extends MenuPage {
 
 	/** "THIS MONTH": each yearly event in the viewed month with its day range, e.g. "1–3". */
 	private void extractMonthEvents(GuiGraphicsExtractor g, int x, int y, float a) {
-		Theme.label(g, font, "THIS MONTH", x, y, a);
+		Theme.divider(g, font, "THIS MONTH", x, y, GRID_W, a);
 		Map<String, int[]> ranges = new LinkedHashMap<>(); // name → {first, last, slot}
 		for (int day = 1; day <= 31; day++) {
 			int d = day;
@@ -147,7 +147,7 @@ public final class CalendarScreen extends MenuPage {
 			String days = v[0] == 1 && v[1] == 31 ? "all month" : v[0] == v[1] ? SkyblockTime.ordinal(v[0]) : v[0] + "–" + v[1];
 			int ly = y + 13 + line++ * 12;
 			g.fill(x, ly + 2, x + 4, ly + 6, Theme.argb(Theme.color(v[2]), a));
-			Theme.textPair(g, font, r.getKey(), Theme.TEXT, days, Theme.TEXT_MUTED, x + 8, ly, GRID_W - 8, a);
+			Theme.textLeader(g, font, r.getKey(), Theme.TEXT, days, Theme.ACCENT, x + 8, ly, GRID_W - 8, a);
 		}
 	}
 
@@ -162,6 +162,6 @@ public final class CalendarScreen extends MenuPage {
 		String when = active
 				? (o.end() > o.start() ? SkyblockTime.duration(o.end() - now) + " left" : "now")
 				: "in " + SkyblockTime.duration(o.start() - now);
-		Theme.textPair(g, font, o.event().name(), Theme.TEXT, when, active ? color : Theme.TEXT_MUTED, x + 23, y + 5, w - 29, a);
+		Theme.textLeader(g, font, o.event().name(), Theme.TEXT, when, active ? color : Theme.ACCENT, x + 23, y + 5, w - 29, a);
 	}
 }

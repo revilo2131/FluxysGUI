@@ -145,20 +145,20 @@ public final class StorageScreen extends MenuPage {
 			int ry = y + r.y() - off;
 			if (ry + ROW_H < y || ry > y + BH) continue; // off screen
 			if (r.entry() == null) {
-				Theme.label(g, font, r.label(), x, ry + 2, a);
+				Theme.divider(g, font, r.label(), x, ry + 2, LIST_W - 6, a);
 				continue;
 			}
 			Entry e = r.entry();
 			boolean isSel = e == sel || e.id().equals(sel.id());
 			boolean hovered = inList && mouseY >= ry && mouseY < ry + ROW_H;
 			int color = Theme.color(e.id().kind() == Kind.ENDER_CHEST ? 0 : 4);
-			int bg = isSel ? Theme.mix(Theme.ROW, Theme.ACCENT, 0.18f) : hovered ? Theme.ROW_HOVER : Theme.ROW;
-			Theme.box(g, x, ry, LIST_W - 6, ROW_H, bg, a, isSel ? Theme.ACCENT : Theme.LINE, a);
+			int bg = isSel ? Theme.mix(Theme.ROW, Theme.FRAME, 0.14f) : hovered ? Theme.ROW_HOVER : Theme.ROW;
+			Theme.box(g, x, ry, LIST_W - 6, ROW_H, bg, a, isSel ? Theme.FRAME : Theme.LINE, a);
 			g.fill(x + 1, ry + 1, x + (isSel ? 4 : 3), ry + ROW_H - 1, Theme.argb(color, a));
 			Theme.item(g, e.icon(), x + 7, ry + 3, 16, a);
 			StorageCache.Page page = StorageCache.get(e.id());
 			String info = page == null ? "not opened" : count(page) + " items";
-			Theme.textPair(g, font, e.id().label(), Theme.TEXT, info, page == null ? Theme.mix(Theme.TEXT_MUTED, Theme.PANEL, 0.3f) : Theme.TEXT_MUTED,
+			Theme.textLeader(g, font, e.id().label(), Theme.TEXT, info, page == null ? Theme.mix(Theme.TEXT_MUTED, Theme.PANEL, 0.3f) : Theme.ACCENT,
 					x + 28, ry + 7, LIST_W - 6 - 28 - 7, a);
 		}
 		g.disableScissor();
@@ -173,7 +173,7 @@ public final class StorageScreen extends MenuPage {
 	private void extractPage(GuiGraphicsExtractor g, Entry sel, int mouseX, int mouseY, float a) {
 		int px = bx() + PANEL_X, y = by();
 		StorageCache.Page page = StorageCache.get(sel.id());
-		g.text(font, sel.id().label(), px, y + 1, Theme.argb(Theme.TEXT, a), true);
+		g.text(font, sel.id().label(), px, y + 1, Theme.argb(Theme.TITLE, a), true);
 		String seen = page == null ? "Not opened yet" : "Seen " + SkyblockTime.duration((System.currentTimeMillis() - page.seenAt()) / 1000) + " ago";
 		Theme.label(g, font, seen, px, y + 11, a);
 
@@ -189,15 +189,17 @@ public final class StorageScreen extends MenuPage {
 		ItemStack hovered = null;
 		for (int i = 0; i < Math.min(items.size(), rows * COLS); i++) {
 			int sx = gx + (i % COLS) * SLOT, sy = gy + (i / COLS) * SLOT;
-			Theme.box(g, sx, sy, SLOT, SLOT, Theme.SLOT, a);
+			Theme.box(g, sx, sy, SLOT, SLOT, Theme.SLOT, a, Theme.mix(Theme.LINE, Theme.FRAME, 0.25f), a);
 			ItemStack s = items.get(i);
 			if (s.isEmpty()) continue;
 			Theme.item(g, s, sx + 1, sy + 1, 16, a);
 			if (s.getCount() > 1 && a > 0.5f) g.itemDecorations(font, s, sx + 1, sy + 1); // stack count
 			if (mouseX >= sx && mouseX < sx + SLOT && mouseY >= sy && mouseY < sy + SLOT) hovered = s;
 		}
-		String used = count(page) + " / " + items.size() + " slots used";
-		g.text(font, used, px + (PANEL_W - font.width(used)) / 2, gy + rows * SLOT + 7, Theme.argb(Theme.TEXT_MUTED, a), true);
+		// how full the page is, as an angled bar with the count inside
+		int n = count(page);
+		Theme.bar(g, font, gx, gy + rows * SLOT + 6, COLS * SLOT, 11, n / (float) Math.max(1, items.size()),
+				Theme.mix(Theme.FRAME_DIM, 0x000000, 0.1f), n + " / " + items.size() + " slots", a);
 		if (hovered != null) Theme.itemTooltip(g, hovered, mouseX, mouseY);
 	}
 

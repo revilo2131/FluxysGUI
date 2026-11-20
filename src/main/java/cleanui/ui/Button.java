@@ -12,16 +12,15 @@ import net.minecraft.world.item.ItemStack;
 /**
  * Themed button. Extends vanilla AbstractButton so keyboard focus, click sound and
  * narration keep working; only the drawing is ours.
- * Plain: a box with an optional item and a label. {@link #tab}: no box, just item + label;
- * the window draws the selected tab's underline.
+ * A box with an optional item and a label; border and label take {@link #color} on hover.
  */
 public final class Button extends AbstractButton {
 	private final Runnable action;
 	private final Anim hover = new Anim(0f, 18f);
 	private Component tooltip;
 	private ItemStack item;
-	private boolean tab, selected, body;
-	private int color = Theme.ACCENT;
+	private boolean body;
+	private int color = Theme.FRAME;
 
 	public Button(int x, int y, int w, int h, Component label, Runnable action) {
 		super(x, y, w, h, label);
@@ -36,13 +35,6 @@ public final class Button extends AbstractButton {
 	/** Small item drawn left of the label. */
 	public Button item(ItemStack item) {
 		this.item = item;
-		return this;
-	}
-
-	/** Draw as a tab: no box; accent label when selected. */
-	public Button tab(boolean selected) {
-		this.tab = true;
-		this.selected = selected;
 		return this;
 	}
 
@@ -71,14 +63,8 @@ public final class Button extends AbstractButton {
 		int x = getX(), y = getY();
 		Font font = Minecraft.getInstance().font;
 
-		int labelColor;
-		if (tab) {
-			if (h > 0.01f) g.fill(x, y, x + width, y + height, Theme.argb(Theme.ROW_HOVER, a * 0.6f * h));
-			labelColor = selected ? Theme.ACCENT : active ? Theme.mix(Theme.TEXT_MUTED, Theme.TEXT, h) : Theme.mix(Theme.TEXT_MUTED, Theme.PANEL, 0.4f);
-		} else {
-			Theme.box(g, x, y, width, height, Theme.mix(Theme.ROW, Theme.ROW_HOVER, h), a, Theme.mix(Theme.LINE, color, 0.6f * h), a);
-			labelColor = active ? Theme.mix(Theme.TEXT, color, h) : Theme.TEXT_MUTED;
-		}
+		Theme.box(g, x, y, width, height, Theme.mix(Theme.ROW, Theme.ROW_HOVER, h), a, Theme.mix(Theme.LINE, color, 0.7f * h), a);
+		int labelColor = active ? Theme.mix(Theme.TEXT, color, h) : Theme.TEXT_MUTED;
 
 		int textW = font.width(getMessage()) + (item != null ? 15 : 0);
 		int tx = x + (width - textW) / 2, ty = y + (height - 8) / 2;

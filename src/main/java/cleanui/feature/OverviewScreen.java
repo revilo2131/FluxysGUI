@@ -125,7 +125,7 @@ public final class OverviewScreen extends MenuPage {
 	private void extractTile(GuiGraphicsExtractor g, Tile t, boolean over, float a) {
 		float h = hoverOf(t.item().slot(), over);
 		Theme.box(g, t.x(), t.y(), t.w(), t.h(), Theme.mix(Theme.ROW, Theme.ROW_HOVER, h), a,
-				Theme.mix(Theme.LINE, Theme.ACCENT, 0.8f * h), a);
+				Theme.mix(Theme.LINE, Theme.FRAME, 0.8f * h), a);
 		int size = Math.round(20 + 4 * h);
 		Theme.item(g, t.item().stack(), t.x() + (t.w() - size) / 2, t.y() + (t.h() - size) / 2 - Math.round(h), size, a);
 	}
@@ -140,7 +140,7 @@ public final class OverviewScreen extends MenuPage {
 		float h = hoverOf(-1, over);
 		int x = t.x(), y = t.y();
 		Theme.box(g, x, y, t.w(), t.h(), Theme.mix(Theme.ROW, Theme.ROW_HOVER, h), a,
-				Theme.mix(Theme.LINE, Theme.ACCENT, 0.8f * h), a);
+				Theme.mix(Theme.LINE, Theme.FRAME, 0.8f * h), a);
 
 		// model on the left; it can't fade, so it appears once the frame is mostly in
 		if (a > 0.5f)
@@ -148,15 +148,16 @@ public final class OverviewScreen extends MenuPage {
 					30, 0.0625f, mouseX, mouseY, player);
 
 		int tx = x + 64;
-		g.text(font, player.getName().getString(), tx, y + 8, Theme.argb(Theme.TEXT, a), true);
-		Theme.label(g, font, "Profile & Stats", tx, y + 19, a);
-		Theme.arrow(g, x + t.w() - 12 + Math.round(2 * h), y + 9, Theme.mix(Theme.TEXT_MUTED, Theme.ACCENT, h), a);
+		g.text(font, player.getName().getString(), tx, y + 7, Theme.argb(Theme.TITLE, a), true);
+		int tagX = tx + Theme.tag(g, font, "PROFILE", tx, y + 19, Theme.FRAME, a) + 3;
+		Theme.tag(g, font, "STATS", tagX, y + 19, Theme.TEXT_MUTED, a);
+		Theme.arrow(g, x + t.w() - 12 + Math.round(2 * h), y + 9, Theme.mix(Theme.TEXT_MUTED, Theme.FRAME, h), a);
 
 		ItemStack gearHover = null;
 		for (int i = 0; i < GEAR.length; i++) {
-			int sx = tx + i * 20 + (i == 4 ? 6 : 0), sy = y + t.h() - 26; // held item after a small gap
+			int sx = tx + i * 20 + (i == 4 ? 6 : 0), sy = y + t.h() - 25; // held item after a small gap
 			ItemStack stack = player.getItemBySlot(GEAR[i]);
-			Theme.box(g, sx, sy, 18, 18, Theme.SLOT, a);
+			Theme.box(g, sx, sy, 18, 18, Theme.SLOT, a, Theme.mix(Theme.LINE, Theme.FRAME, 0.45f), a);
 			if (stack.isEmpty())
 				g.blitSprite(RenderPipelines.GUI_TEXTURED, EMPTY[i], sx + 1, sy + 1, 16, 16, Theme.argb(0xFFFFFF, a * 0.35f));
 			else Theme.item(g, stack, sx + 1, sy + 1, 16, a);

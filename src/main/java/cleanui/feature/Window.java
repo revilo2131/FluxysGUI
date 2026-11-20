@@ -23,6 +23,8 @@ public abstract class Window extends CleanScreen {
 	/** Page body size. */
 	protected static final int BW = W - Theme.PAD * 2, BH = H - BODY_Y - FOOTER - 6;
 	private static final String HOME = "SkyBlock Menu";
+	/** Header/footer inset that clears the frame's corner ornaments. */
+	private static final int EDGE = 11;
 	private static final String VERSION = "v" + FabricLoader.getInstance().getModContainer(CleanUi.ID)
 			.map(m -> m.getMetadata().getVersion().getFriendlyString()).orElse("?");
 
@@ -85,7 +87,7 @@ public abstract class Window extends CleanScreen {
 	@Override
 	protected final void init() {
 		if (depth > 0)
-			addRenderableWidget(new Button(left() + 6, top() + 5, 16, 14, Component.literal("‹"), this::goBack)
+			addRenderableWidget(new Button(left() + EDGE, top() + 5, 16, 14, Component.literal("‹"), this::goBack)
 					.tooltip(Component.literal("Back to the SkyBlock Menu")));
 		initBody();
 	}
@@ -103,7 +105,7 @@ public abstract class Window extends CleanScreen {
 		Theme.panel(g, x, y, W, H, a);
 
 		// header: [back] icon  SkyBlock Menu › Page            date  time
-		int hx = x + (depth > 0 ? 28 : Theme.PAD);
+		int hx = x + EDGE + (depth > 0 ? 20 : 0);
 		Theme.item(g, icon, hx, y + 6, 12, a);
 		hx += 16;
 		if (depth > 0) {
@@ -111,19 +113,19 @@ public abstract class Window extends CleanScreen {
 			g.text(font, crumb, hx, y + 8, Theme.argb(Theme.TEXT_MUTED, a), true);
 			hx += font.width(crumb);
 		}
-		g.text(font, title, hx, y + 8, Theme.argb(Theme.ACCENT, a), true);
+		g.text(font, title, hx, y + 8, Theme.argb(Theme.TITLE, a), true);
 		SkyblockTime.Date now = SkyblockTime.at(SkyblockTime.now());
 		String clock = now.clock(), date = now.monthName() + " " + SkyblockTime.ordinal(now.day()) + "  ";
-		int cx = x + W - Theme.PAD - font.width(clock);
+		int cx = x + W - EDGE - font.width(clock);
 		g.text(font, clock, cx, y + 8, Theme.argb(Theme.TEXT, a), true);
 		g.text(font, date, cx - font.width(date), y + 8, Theme.argb(Theme.TEXT_MUTED, a), true);
-		g.fill(x + 1, y + HEADER, x + W - 1, y + HEADER + 1, Theme.argb(Theme.LINE, a));
+		Theme.divider(g, x + 3, y + HEADER, W - 6, a);
 
 		// footer
 		int fy = y + H - FOOTER;
-		g.fill(x + 1, fy, x + W - 1, fy + 1, Theme.argb(Theme.LINE, a));
-		Theme.label(g, font, hint(), x + Theme.PAD, fy + 6, a);
-		g.text(font, VERSION, x + W - Theme.PAD - font.width(VERSION), fy + 6, Theme.argb(Theme.TEXT_MUTED, a * 0.7f), true);
+		g.fill(x + 3, fy, x + W - 3, fy + 1, Theme.argb(Theme.LINE, a));
+		Theme.label(g, font, hint(), x + EDGE, fy + 6, a);
+		g.text(font, VERSION, x + W - EDGE - font.width(VERSION), fy + 6, Theme.argb(Theme.TEXT_MUTED, a * 0.7f), true);
 
 		// body slides in: from the right going into a page, from the left coming back
 		float p = page.get();

@@ -154,10 +154,10 @@ public final class SkillsScreen extends MenuPage {
 		if (giveUpIfUnreadable(entries.isEmpty())) return;
 		int x = bx(), y = by();
 
-		// summary bar
+		// summary bar: label + value badge
 		String avg = average();
-		Theme.label(g, font, "SKILL AVERAGE", x, y + 5, a);
-		if (avg != null) g.text(font, avg, x + font.width("SKILL AVERAGE") + 6, y + 5, Theme.argb(Theme.ACCENT, a), true);
+		g.text(font, "Skill Average", x, y + 5, Theme.argb(Theme.TITLE, a), true);
+		if (avg != null) Theme.badge(g, font, avg, x + font.width("Skill Average") + 6 + font.width(avg) + 5, y + 4, Theme.ACCENT, a);
 		if (entries.isEmpty()) {
 			String loading = "Loading skills…";
 			g.text(font, loading, x + (BW - font.width(loading)) / 2, y + BH / 2, Theme.argb(Theme.TEXT_MUTED, a), true);
@@ -166,9 +166,9 @@ public final class SkillsScreen extends MenuPage {
 
 		Cell hovered = null, previous = null;
 		for (Cell c : layout()) {
-			// faint line between the two compact-list groups
+			// link divider between the two compact-list groups
 			if (!c.card() && previous != null && !previous.card() && c.y() - previous.y() > ROW_STEP)
-				g.fill(c.x() + 4, c.y() - GROUP_GAP / 2 - 1, c.x() + c.w() - 4, c.y() - GROUP_GAP / 2, Theme.argb(Theme.LINE, a));
+				Theme.divider(g, c.x() + 4, c.y() - GROUP_GAP / 2 - 2, c.w() - 8, a);
 			boolean over = c.contains(mouseX, mouseY);
 			if (over) hovered = c;
 			if (c.card()) extractCard(g, c, over, a);
@@ -178,49 +178,54 @@ public final class SkillsScreen extends MenuPage {
 		if (hovered != null) Theme.itemTooltip(g, hovered.entry().stack(), mouseX, mouseY);
 	}
 
-	/** Large card: slot, name + level, XP + percent, full-width bar. */
+	/**
+	 * Large card: framed slot, name ···· level badge, progress line, and an angled bar with
+	 * the XP written inside (like the drill fuel bar on fancy tooltips).
+	 */
 	private void extractCard(GuiGraphicsExtractor g, Cell c, boolean over, float a) {
 		Entry e = c.entry();
 		SkillParser.Skill s = e.skill();
 		int x = c.x(), y = c.y(), w = c.w(), color = colorOf(s);
 		float h = hoverOf(e, over), p = barOf(e);
 
-		Theme.box(g, x, y, w, c.h(), Theme.mix(Theme.ROW, Theme.ROW_HOVER, h), a, Theme.mix(Theme.LINE, color, 0.6f * h), a);
+		Theme.box(g, x, y, w, c.h(), Theme.mix(Theme.ROW, Theme.ROW_HOVER, h), a, Theme.mix(Theme.LINE, color, 0.7f * h), a);
 		g.fill(x + 1, y + 1, x + 3 + Math.round(2 * h), y + c.h() - 1, Theme.argb(color, a)); // stripe
 		Theme.slot(g, e.stack(), x + 8, y + 6, 1f + 0.12f * h, a);
 
-		int tx = x + 32, tw = w - 32 - 8;
+		int tx = x + 32, right = x + w - 8;
+		int bw = Theme.badge(g, font, String.valueOf(s.level()), right, y + 6, s.maxed() ? Theme.ACCENT : color, a);
 		if (s.maxed()) {
 			Theme.shimmer(g, font, s.name(), tx, y + 7, a);
-			Theme.shimmer(g, font, String.valueOf(s.level()), tx + tw - font.width(String.valueOf(s.level())), y + 7, a);
-			Theme.shimmer(g, font, "MAX", tx, y + 18, a);
+			Theme.shimmer(g, font, "Max level", tx, y + 19, a);
 		} else {
-			Theme.textPair(g, font, s.name(), Theme.TEXT, String.valueOf(s.level()), color, tx, y + 7, tw, a);
-			String xp = s.current() == null ? null : SkillParser.compact(s.current()) + " / " + SkillParser.compact(s.needed());
-			Theme.textPair(g, font, xp, Theme.TEXT_MUTED, String.format("%.1f%%", s.progress() * 100), color, tx, y + 18, tw, a);
+			g.text(font, s.name(), tx, y + 7, Theme.argb(color, a), true);
+			Theme.leader(g, tx + font.width(s.name()) + 3, right - bw - 3, y + 13, a);
+			Theme.textLeader(g, font, "Progress", Theme.TEXT_MUTED, String.format("%.1f%%", s.progress() * 100), Theme.TEXT,
+					tx, y + 19, right - tx, a);
 		}
-		int by = y + c.h() - 13;
-		Theme.box(g, x + 8, by, w - 16, 6, Theme.SLOT, a);
-		g.fill(x + 9, by + 1, x + 9 + Math.round((w - 18) * p), by + 5, Theme.argb(s.maxed() ? Theme.ACCENT : color, a));
+		String xp = s.maxed() ? "MAXED" : s.current() == null ? null : SkillParser.compact(s.current()) + " / " + SkillParser.compact(s.needed());
+		Theme.bar(g, font, x + 8, y + c.h() - 14, w - 16, 11, p, s.maxed() ? Theme.mix(Theme.ACCENT, 0x000000, 0.2f) : Theme.mix(color, 0x000000, 0.25f), xp, a);
 	}
 
-	/** Compact row: item, name, level, thin bar along the bottom. */
+	/** Compact row: item, name ···· level badge, thin bar along the bottom. */
 	private void extractRow(GuiGraphicsExtractor g, Cell c, boolean over, float a) {
 		Entry e = c.entry();
 		SkillParser.Skill s = e.skill();
 		int x = c.x(), y = c.y(), w = c.w(), color = colorOf(s);
 		float h = hoverOf(e, over), p = barOf(e);
 
-		Theme.box(g, x, y, w, c.h(), Theme.mix(Theme.ROW, Theme.ROW_HOVER, h), a, Theme.mix(Theme.LINE, color, 0.6f * h), a);
+		Theme.box(g, x, y, w, c.h(), Theme.mix(Theme.ROW, Theme.ROW_HOVER, h), a, Theme.mix(Theme.LINE, color, 0.7f * h), a);
 		g.fill(x + 1, y + 1, x + 3 + Math.round(2 * h), y + c.h() - 1, Theme.argb(color, a)); // stripe
 		Theme.item(g, e.stack(), x + 7, y + 3, Math.round(13 + 2 * h), a);
 
-		int tx = x + 25, tw = w - 25 - 7;
-		String level = String.valueOf(s.level());
-		if (s.maxed()) {
-			Theme.shimmer(g, font, s.name(), tx, y + 5, a);
-			Theme.shimmer(g, font, level, tx + tw - font.width(level), y + 5, a);
-		} else Theme.textPair(g, font, s.name(), Theme.TEXT, level, color, tx, y + 5, tw, a);
+		int tx = x + 25, right = x + w - 6;
+		int bw = Theme.badge(g, font, String.valueOf(s.level()), right, y + 4, s.maxed() ? Theme.ACCENT : color, a);
+		if (s.maxed()) Theme.shimmer(g, font, s.name(), tx, y + 5, a);
+		else {
+			g.text(font, s.name(), tx, y + 5, Theme.argb(Theme.TEXT, a), true);
+			Theme.leader(g, tx + font.width(s.name()) + 3, right - bw - 3, y + 11, a);
+		}
+		int tw = right - tx;
 		g.fill(tx, y + c.h() - 4, tx + tw, y + c.h() - 2, Theme.argb(Theme.SLOT, a));
 		g.fill(tx, y + c.h() - 4, tx + Math.round(tw * p), y + c.h() - 2, Theme.argb(s.maxed() ? Theme.ACCENT : color, a));
 	}
