@@ -4,6 +4,7 @@ import cleanui.data.StorageCache;
 import cleanui.CleanUi;
 import cleanui.feature.CalendarScreen;
 import cleanui.feature.SettingsScreen;
+import cleanui.feature.SubMenuScreen;
 import cleanui.skyblock.CollectionParser;
 import net.minecraft.world.item.DyeColor;
 import cleanui.feature.ListPage;
@@ -68,7 +69,9 @@ public final class Preview {
 			new Shot("restyled", Preview::fakeWardrobe, -1, -1),
 			new Shot("hotm", Preview::fakeHotm, -1, -1),
 			new Shot("hotm-hover", Preview::fakeHotm, 470, 355),
-			new Shot("dungeons", Preview::fakeDungeons, -1, -1));
+			new Shot("dungeons", Preview::fakeDungeons, -1, -1),
+			new Shot("hotm-reset", Preview::fakeHotmReset, -1, -1),
+			new Shot("hotm-swap", Preview::fakeHotmSwap, -1, -1));
 	private static final int START = 80, EACH = 40;
 	/** -Dcleanui.preview.only=a,b runs just those shots. */
 	private static final List<Shot> RUN = SHOTS.stream()
@@ -323,6 +326,29 @@ public final class Preview {
 		put(c, 32, Items.ENDER_EYE, "Boss Collections", "Collections Unlocked: 5/7");
 		put(c, 48, Items.ARROW, "Go Back");
 		return CleanUi.pageFor("Dungeoneering", menu(mc, c, "Dungeoneering"));
+	}
+
+	/** A confirmation opened from HOTM: becomes a dialog card. */
+	private static Screen fakeHotmReset(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(27);
+		put(c, 13, Items.TNT, "Reset Heart of the Mountain", "Resets every perk and refunds", "your Mithril, Gemstone and Glacite", "Powder.", "",
+				"Your tokens are refunded too.", "", "Cost: 1,000,000 Coins");
+		put(c, 11, pane(DyeColor.LIME), "Confirm", "Click to reset your tree!");
+		put(c, 15, pane(DyeColor.RED), "Cancel", "Go back without resetting.");
+		ChestMenu menu = ChestMenu.threeRows(4, mc.player.getInventory(), c);
+		return new SubMenuScreen("Heart of the Mountain", new ItemStack(Items.AMETHYST_CLUSTER),
+				new ContainerScreen(menu, mc.player.getInventory(), Component.literal("Reset Heart of the Mountain")));
+	}
+
+	/** Any other menu opened from HOTM: buttons at their vanilla spots. */
+	private static Screen fakeHotmSwap(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		put(c, 20, Items.EMERALD_BLOCK, "Tree 1", "Your main mining tree.", "", "SELECTED");
+		put(c, 22, Items.GOLD_BLOCK, "Tree 2", "A gemstone mining setup.", "", "Click to swap!");
+		put(c, 24, Items.COAL_BLOCK, "Tree 3", "Unlocks at HOTM Tier 9.");
+		put(c, 40, Items.BOOK, "How tree swapping works", "Swap between saved perk setups.");
+		put(c, 48, Items.ARROW, "Go Back");
+		return new SubMenuScreen("Heart of the Mountain", new ItemStack(Items.AMETHYST_CLUSTER), menu(mc, c, "Swap Tree"));
 	}
 
 	private static Screen fakeCalendar(Minecraft mc) {

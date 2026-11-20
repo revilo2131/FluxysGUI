@@ -134,10 +134,11 @@ public abstract class Window extends CleanScreen {
 			g.text(font, crumb, hx, y + 8, Theme.argb(Theme.TEXT_MUTED, a), true);
 			hx += font.width(crumb);
 		}
-		g.text(font, title, hx, y + 8, Theme.argb(Theme.TITLE, a), true);
 		SkyblockTime.Date now = SkyblockTime.at(SkyblockTime.now());
 		String clock = now.clock(), date = now.monthName() + " " + SkyblockTime.ordinal(now.day()) + "  ";
 		int cx = x + W - EDGE - (showSettingsButton() ? 22 : 0) - font.width(clock);
+		// title last, shortened so it always stops before the date
+		g.text(font, Theme.fit(font, title.getString(), cx - font.width(date) - 8 - hx), hx, y + 8, Theme.argb(Theme.TITLE, a), true);
 		g.text(font, clock, cx, y + 8, Theme.argb(Theme.TEXT, a), true);
 		g.text(font, date, cx - font.width(date), y + 8, Theme.argb(Theme.TEXT_MUTED, a), true);
 		Theme.divider(g, x + 3, y + HEADER, W - 6, a);

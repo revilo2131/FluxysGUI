@@ -7,6 +7,9 @@ import cleanui.feature.DungeonScreen;
 import cleanui.feature.ListPage;
 import cleanui.feature.TrackScreen;
 import cleanui.feature.TreeScreen;
+import cleanui.feature.SubMenuScreen;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import cleanui.data.Config;
 import cleanui.ui.Theme;
 import cleanui.feature.MenuPage;
@@ -89,6 +92,12 @@ public final class CleanUi implements ClientModInitializer {
 		String title = ChatFormatting.stripFormatting(screen.getTitle().getString());
 		Screen page = pageFor(title, menu);
 		if (page != null) return page;
+		// a menu opened from the HOTM page (Reset, Swap, ...) becomes a HOTM sub-page, whatever its title
+		Screen from = Minecraft.getInstance().gui.screen();
+		if (Config.get().hotm && from instanceof TreeScreen tree)
+			return new SubMenuScreen(tree.getTitle().getString(), new ItemStack(Items.AMETHYST_CLUSTER), menu);
+		if (from instanceof SubMenuScreen sub)
+			return new SubMenuScreen(sub.getTitle().getString(), new ItemStack(Items.AMETHYST_CLUSTER), menu);
 		if (SEEN_TITLES.add(title)) LOGGER.info("[Clean UI] Menu without a Clean UI page: '{}'", title);
 		return screen;
 	}
