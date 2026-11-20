@@ -92,7 +92,7 @@ public final class Networth {
 				.header("API-Key", key).timeout(Duration.ofSeconds(15)).GET().build(), HttpResponse.BodyHandlers.ofString());
 		switch (res.statusCode()) {
 			case 200 -> {}
-			case 403 -> throw new Exception("Hypixel says the API key is invalid.");
+			case 403 -> throw new Exception("Hypixel: " + cause(res.body(), "API key refused"));
 			case 429 -> throw new Exception("Too many requests; trying again later.");
 			default -> throw new Exception("Hypixel API error " + res.statusCode() + ".");
 		}
@@ -108,6 +108,16 @@ public final class Networth {
 			if (selected && chosen == null) chosen = o;
 		}
 		return chosen != null ? chosen : profiles.getAsJsonArray().get(0).getAsJsonObject();
+	}
+
+	/** Hypixel's own error text ("cause") from a response body, else the fallback. */
+	private static String cause(String body, String fallback) {
+		try {
+			JsonElement c = JsonParser.parseString(body).getAsJsonObject().get("cause");
+			return c != null && c.isJsonPrimitive() ? c.getAsString() : fallback;
+		} catch (Exception e) {
+			return fallback;
+		}
 	}
 
 	private static synchronized Map<String, Double> prices() throws Exception {
