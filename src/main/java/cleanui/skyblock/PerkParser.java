@@ -44,6 +44,25 @@ public final class PerkParser {
 		return m.matches() ? Integer.parseInt(m.group(1)) : -1;
 	}
 
+	private static final Pattern POWDER = Pattern.compile("(Mithril|Gemstone|Glacite) Powder:?\\s*([\\d,.]+[kKmMbB]?)");
+
+	/** Powder amounts in these lore lines, e.g. "Mithril Powder: 1,234,567" → {Mithril=1234567}. */
+	public static java.util.Map<String, Long> powder(List<String> lore) {
+		java.util.Map<String, Long> found = new java.util.LinkedHashMap<>();
+		for (String line : lore) {
+			Matcher m = POWDER.matcher(line);
+			while (m.find()) found.putIfAbsent(m.group(1), amount(m.group(2)));
+		}
+		return found;
+	}
+
+	/** "1,234" → 1234, "1.2M" → 1200000. */
+	static long amount(String s) {
+		String t = s.replace(",", "");
+		double mult = switch (Character.toLowerCase(t.charAt(t.length() - 1))) { case 'k' -> 1e3; case 'm' -> 1e6; case 'b' -> 1e9; default -> 1; };
+		return Math.round(Double.parseDouble(mult == 1 ? t : t.substring(0, t.length() - 1)) * mult);
+	}
+
 	/** Tokens left, from any lore line like "Token of the Mountain: 3", else -1. */
 	public static int tokens(List<String> lore) {
 		for (String line : lore) {

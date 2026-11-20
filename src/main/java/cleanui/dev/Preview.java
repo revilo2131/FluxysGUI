@@ -303,7 +303,8 @@ public final class Preview {
 			put(c, (int) p[0], (Item) p[1], (String) p[2], (String) p[3], "", "Grants a bonus while mining.");
 		put(c, 8, Items.ARROW, "Scroll Up");
 		put(c, 53, Items.ARROW, "Scroll Down");
-		put(c, 17, Items.AMETHYST_CLUSTER, "Heart of the Mountain", "Token of the Mountain: 3", "Mithril Powder: 1.2M");
+		put(c, 17, Items.AMETHYST_CLUSTER, "Heart of the Mountain", "Token of the Mountain: 3",
+				"Mithril Powder: 1,234,567", "Gemstone Powder: 3,402,110", "Glacite Powder: 812,345");
 		return CleanUi.pageFor("Heart of the Mountain", menu(mc, c, "Heart of the Mountain"));
 	}
 

@@ -37,7 +37,6 @@ public final class ListPage extends MenuPage {
 		BESTIARY(Items.WRITABLE_BOOK, 1, null, 3, "islands", "Pick an island.", false),
 		BESTIARY_PAGE(Items.WRITABLE_BOOK, 2, "Bestiary", 4, "mobs", "Hover a mob for its milestones.", false),
 		PETS(Items.BONE, 1, null, 4, "pets", "Click a pet to summon it.", false),
-		DUNGEONS(Items.SKELETON_SKULL, 1, null, 3, "entries", "Click a class to select it.", false),
 		/** Fallback for a level menu that turned out not to have tiers. */
 		GENERIC(Items.BOOK, 2, null, 4, "items", "Hover for details.", false);
 
@@ -61,7 +60,6 @@ public final class ListPage extends MenuPage {
 	private static final Pattern COLLECTIONS_TITLE = Pattern.compile("^Collections?$");
 	private static final Pattern CATEGORY_TITLE = Pattern.compile("^(.+) Collections$");
 	private static final Pattern BESTIARY_TITLE = Pattern.compile("^Bestiary(?:\\s*[➜>\\-:]\\s*(.+))?$");
-	private static final Pattern DUNGEONS_TITLE = Pattern.compile("^Dungeoneering$");
 	private static final Pattern PETS_TITLE = Pattern.compile("^Pets(?: \\(\\d+/\\d+\\))?$");
 	private static final int TOP = 24, GAP = 5, ROW_GAP = 4;
 	private static final Map<String, ItemStack> ITEM_CACHE = new HashMap<>();
@@ -91,7 +89,6 @@ public final class ListPage extends MenuPage {
 		if (c.bestiary && (m = BESTIARY_TITLE.matcher(title)).matches())
 			return m.group(1) == null ? new ListPage("Bestiary", Mode.BESTIARY, original) : new ListPage(m.group(1).strip(), Mode.BESTIARY_PAGE, original);
 		if (c.pets && PETS_TITLE.matcher(title).matches()) return new ListPage("Pets", Mode.PETS, original);
-		if (c.skills && DUNGEONS_TITLE.matcher(title).matches()) return new ListPage("Dungeoneering", Mode.DUNGEONS, original);
 		return null;
 	}
 

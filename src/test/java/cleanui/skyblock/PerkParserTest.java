@@ -20,6 +20,14 @@ class PerkParserTest {
 	}
 
 	@Test
+	void powderAmounts() {
+		var p = PerkParser.powder(List.of("Mithril Powder: 1,234,567", "Gemstone Powder: 2.5M", "Glacite Powder 80,000"));
+		assertEquals(1_234_567L, p.get("Mithril"));
+		assertEquals(2_500_000L, p.get("Gemstone"));
+		assertEquals(80_000L, p.get("Glacite"));
+	}
+
+	@Test
 	void tiersAndTokens() {
 		assertEquals(7, PerkParser.tier("Tier 7"));
 		assertEquals(-1, PerkParser.tier("Mining Speed"));

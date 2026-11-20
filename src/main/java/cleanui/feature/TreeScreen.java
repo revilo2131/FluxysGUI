@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
  */
 public final class TreeScreen extends MenuPage {
 	private static final Pattern TITLE = Pattern.compile("^Heart of the (Mountain|Forest)$");
-	private static final int TOP = 24, LABEL_W = 46, COL_STEP = 46, ROW_STEP = 29, TILE_W = 32, TILE_H = 25;
+	private static final int TOP = 24, LABEL_W = 46, COL_STEP = 38, ROW_STEP = 29, TILE_W = 32, TILE_H = 25;
 	private static final List<String> UP = List.of("Scroll Up", "Previous Page"), DOWN = List.of("Scroll Down", "Next Page");
 
 	private record Node(MenuItem item, PerkParser.Perk perk, int col, int row, int x, int y) {
@@ -43,6 +43,9 @@ public final class TreeScreen extends MenuPage {
 	private final Map<Integer, Anim> hover = new HashMap<>();
 	private Button up, down;
 	private int upSlot = -1, downSlot = -1, tokens = -1;
+	/** Powder amounts read from the menu this frame (name → amount), and counters that ease toward them. */
+	private final Map<String, Long> powder = new HashMap<>();
+	private final Map<String, Anim> powderShown = new HashMap<>();
 	private final List<int[]> tierLabels = new ArrayList<>(); // {row, tier, fill 0..1000}
 	private final Anim xpBar = new Anim(0f, 5f); // grows in from the bottom on open
 
@@ -81,12 +84,15 @@ public final class TreeScreen extends MenuPage {
 		List<Node> nodes = new ArrayList<>();
 		tierLabels.clear();
 		upSlot = downSlot = tokens = -1;
+		powder.clear();
 		for (MenuItem item : items) {
 			String name = item.name();
 			if (tokens < 0) tokens = PerkParser.tokens(item.lore());
+			PerkParser.powder(item.lore()).forEach(powder::putIfAbsent);
 			if (UP.stream().anyMatch(name::startsWith)) { upSlot = item.slot(); continue; }
 			if (DOWN.stream().anyMatch(name::startsWith)) { downSlot = item.slot(); continue; }
 			if (name.isEmpty() || NAV.contains(name)) continue;
+			if (item.slot() % 9 == 8) continue; // right column: info items; the powder panel sits there
 			int col = item.slot() % 9, row = item.slot() / 9, tier = PerkParser.tier(name);
 			if (col == 0 && tier >= 0) {
 				String tid = BuiltInRegistries.ITEM.getKey(item.stack().getItem()).toString();
@@ -138,7 +144,44 @@ public final class TreeScreen extends MenuPage {
 			if (over) hovered = n;
 			extractNode(g, n, over, a);
 		}
+		extractPowder(g, a);
 		if (hovered != null) Theme.itemTooltip(g, hovered.item().stack(), mouseX, mouseY); // Hypixel's perk text
+	}
+
+	/** Powder kinds in display order: name, color, item. */
+	private static final Object[][] POWDERS = {
+			{"Mithril", 0x6CD655, new ItemStack(Items.PRISMARINE_CRYSTALS)},
+			{"Gemstone", 0xC57BFF, new ItemStack(Items.AMETHYST_SHARD)},
+			{"Glacite", 0x8FDCFF, new ItemStack(Items.PACKED_ICE)}};
+	private static final int PANEL_W = 104;
+
+	/**
+	 * Right-side powder panel. The numbers count toward what the menu shows, so spending
+	 * powder visibly ticks the value down.
+	 */
+	private void extractPowder(GuiGraphicsExtractor g, float a) {
+		int x = bx() + BW - PANEL_W, y = by() + TOP;
+		Theme.divider(g, font, "POWDER", x, y, PANEL_W, a);
+		for (int i = 0; i < POWDERS.length; i++) {
+			String kind = (String) POWDERS[i][0];
+			int color = (int) POWDERS[i][1], cy = y + 14 + i * 40;
+			Long amount = powder.get(kind);
+			Theme.box(g, x, cy, PANEL_W, 36, Theme.ROW, a);
+			g.fill(x + 1, cy + 1, x + 3, cy + 35, Theme.argb(color, a));
+			Theme.slot(g, (ItemStack) POWDERS[i][2], x + 7, cy + 9, 1f, a);
+			g.text(font, kind, x + 29, cy + 7, Theme.argb(color, a), true); // "POWDER" heading above says what it is
+			String shown;
+			if (amount == null) shown = "—";
+			else {
+				Anim count = powderShown.computeIfAbsent(kind, k -> {
+					Anim c = new Anim(amount, 6f);
+					return c;
+				});
+				count.target(amount);
+				shown = String.format("%,d", Math.round((double) count.get()));
+			}
+			g.text(font, shown, x + 29, cy + 20, Theme.argb(Theme.TEXT, a), true);
+		}
 	}
 
 	/** How full a tier is (0..1000): reached = full, in progress = its percent, locked = empty. */
