@@ -1,10 +1,16 @@
 package cleanui.feature;
 
 import cleanui.data.Config;
+import cleanui.data.Networth;
+import cleanui.data.NetworthCalc;
+import cleanui.skyblock.SkillParser;
 import cleanui.ui.Anim;
 import cleanui.ui.Button;
 import cleanui.ui.Theme;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.network.chat.Style;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -40,6 +46,7 @@ public final class SettingsScreen extends Window {
 
 	private final Screen parent;
 	private final List<Anim> knobs = new ArrayList<>();
+	private EditBox apiKey;
 
 	public SettingsScreen(Screen parent) {
 		super("Settings", new ItemStack(Items.COMPARATOR), 1);
@@ -84,6 +91,21 @@ public final class SettingsScreen extends Window {
 				.tooltip(Component.literal("Smaller")).body());
 		addRenderableWidget(new Button(bx() + 82, y, 18, 16, Component.literal("+"), () -> stepScale(1))
 				.tooltip(Component.literal("Bigger")).body());
+
+		apiKey = addRenderableWidget(new EditBox(font, bx() + 5, by() + 120, COL_W - 10, 10, Component.literal("Hypixel API key")));
+		apiKey.setBordered(false);
+		apiKey.setMaxLength(64);
+		apiKey.setTextColor(Theme.argb(Theme.TEXT, 1f));
+		apiKey.setHint(Component.literal("Paste your Hypixel API key").withColor(Theme.TEXT_MUTED));
+		String saved = Config.get().hypixelApiKey;
+		apiKey.setValue(saved == null ? "" : saved);
+		// masked, so the key doesn't show on streams or screenshots
+		apiKey.addFormatter((text, start) -> FormattedCharSequence.forward("•".repeat(text.length()), Style.EMPTY));
+		apiKey.setResponder(value -> {
+			Config.get().hypixelApiKey = value.strip();
+			Config.get().save();
+			Networth.reset();
+		});
 	}
 
 	private void stepScale(int dir) {
@@ -120,10 +142,20 @@ public final class SettingsScreen extends Window {
 		g.text(font, scale, x + 50 - font.width(scale) / 2, y + 80, Theme.argb(Theme.TEXT, a), true);
 		Theme.label(g, font, "Fits any screen.", x + 108, y + 80, a);
 
+		// networth: personal Hypixel API key (masked) and the current status
+		Theme.divider(g, font, "NETWORTH", x, y + 104, COL_W, a);
+		Theme.box(g, x, y + 116, COL_W, 16, Theme.SLOT, a, apiKey.isFocused() ? Theme.FRAME : Theme.LINE, a);
+		Networth.refreshIfStale();
+		String err = Networth.error();
+		NetworthCalc.Result nw = Networth.result();
+		if (Networth.loading() && nw == null) Theme.label(g, font, "Checking your profile…", x, y + 137, a);
+		else if (err != null) g.text(font, Theme.fit(font, err, COL_W), x, y + 137, Theme.argb(Theme.color(3), a), true);
+		else if (nw != null) Theme.textLeader(g, font, "Networth", Theme.TEXT_MUTED, SkillParser.compact(String.valueOf((long) nw.total())), Theme.ACCENT, x, y + 137, COL_W, a);
+		Theme.label(g, font, "Get one at developer.hypixel.net", x, y + 150, a);
+
 		// about: what this mod does and doesn't do
-		Theme.divider(g, font, "ABOUT", x, y + 104, COL_W, a);
-		String[] about = {"FluxysGUI only changes how menus look.", "Every click is passed on 1:1; nothing", "is automated or sent on its own."};
-		for (int i = 0; i < about.length; i++) Theme.label(g, font, about[i], x, y + 118 + i * 11, a);
+		Theme.label(g, font, "Visual only: every click is passed on 1:1.", x, y + 170, a);
+		Theme.label(g, font, "Prices: SkyHelper. Not by Hypixel.", x, y + 181, a);
 
 		// page toggles
 		int rx = x + RIGHT_X, rw = BW - RIGHT_X;

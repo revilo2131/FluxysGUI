@@ -59,6 +59,11 @@ public final class StorageCache {
 		ClientTickEvents.END_CLIENT_TICK.register(StorageCache::tick);
 	}
 
+	/** SkyBlock profile id from the join message, or null. */
+	public static String profileId() {
+		return profileId;
+	}
+
 	/** Cached page, or null if the player hasn't opened it yet (on this profile). */
 	public static Page get(PageId id) {
 		ensureLoaded(Minecraft.getInstance());

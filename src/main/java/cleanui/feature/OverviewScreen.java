@@ -1,5 +1,8 @@
 package cleanui.feature;
 
+import cleanui.data.Networth;
+import cleanui.data.NetworthCalc;
+import cleanui.skyblock.SkillParser;
 import cleanui.ui.Anim;
 import cleanui.ui.Theme;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -7,6 +10,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.chat.Component;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -154,6 +158,27 @@ public final class OverviewScreen extends MenuPage {
 		Theme.tag(g, font, "STATS", tagX, y + 19, Theme.TEXT_MUTED, a);
 		Theme.arrow(g, x + t.w() - 12 + Math.round(2 * h), y + 9, Theme.mix(Theme.TEXT_MUTED, Theme.FRAME, h), a);
 
+		// networth (personal API key in Settings); hover the number for the breakdown
+		Networth.refreshIfStale();
+		NetworthCalc.Result nw = Networth.result();
+		String value = nw != null ? SkillParser.compact(String.valueOf((long) nw.total())) : Networth.loading() ? "…" : null;
+		boolean overNetworth = false;
+		if (value != null) {
+			int right = x + t.w() - 8, vx = right - font.width(value);
+			g.text(font, value, vx, y + 20, Theme.argb(Theme.ACCENT, a), true);
+			Theme.label(g, font, "networth", right - font.width("networth"), y + 31, a);
+			overNetworth = nw != null && mouseX >= right - 50 && mouseX < right && mouseY >= y + 18 && mouseY < y + 41;
+		}
+		if (overNetworth) {
+			List<Component> lines = new ArrayList<>();
+			lines.add(Component.literal("Networth ").append(Component.literal(value).withColor(Theme.ACCENT)));
+			lines.add(Component.literal("Estimate: base item prices").withColor(Theme.TEXT_MUTED));
+			nw.parts().forEach((k, v) -> lines.add(Component.literal(k + ": ").withColor(Theme.TEXT_MUTED)
+					.append(Component.literal(SkillParser.compact(String.valueOf(v.longValue()))).withColor(Theme.TEXT))));
+			lines.add(Component.literal("Prices: SkyHelper · Data: Hypixel API").withColor(Theme.TEXT_MUTED));
+			g.setComponentTooltipForNextFrame(font, lines, mouseX, mouseY, Theme.tooltipStyle());
+		}
+
 		ItemStack gearHover = null;
 		for (int i = 0; i < GEAR.length; i++) {
 			int sx = tx + i * 20 + (i == 4 ? 6 : 0), sy = y + t.h() - 25; // held item after a small gap
@@ -164,7 +189,7 @@ public final class OverviewScreen extends MenuPage {
 			else Theme.item(g, stack, sx + 1, sy + 1, 16, a);
 			if (!stack.isEmpty() && mouseX >= sx && mouseX < sx + 18 && mouseY >= sy && mouseY < sy + 18) gearHover = stack;
 		}
-		return gearHover != null ? gearHover : over ? t.item().stack() : null;
+		return gearHover != null ? gearHover : over && !overNetworth ? t.item().stack() : null;
 	}
 
 	@Override

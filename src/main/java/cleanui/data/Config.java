@@ -33,6 +33,8 @@ public final class Config {
 	public boolean tracks = true;
 	/** Restyle every other Hypixel menu (keeps its own controls). */
 	public boolean restyleMenus = true;
+	/** Personal Hypixel API key for networth; stays on this PC, only sent to api.hypixel.net. */
+	public String hypixelApiKey = "";
 
 	public static Config get() {
 		if (instance == null) {
