@@ -1,0 +1,20 @@
+{
+	"schemaVersion": 1,
+	"id": "cleanui",
+	"version": "${version}",
+	"name": "Clean UI for Hypixel SkyBlock",
+	"description": "Client-side UI improvements for Hypixel SkyBlock. Visual only: no automation.",
+	"authors": [],
+	"license": "All-Rights-Reserved",
+	"icon": "assets/cleanui/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": ["cleanui.CleanUi"]
+	},
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
