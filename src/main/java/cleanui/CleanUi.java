@@ -16,7 +16,6 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
-import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -75,14 +74,17 @@ public final class CleanUi implements ClientModInitializer {
 		StorageCache.init();
 		Preview.init(); // dev only; does nothing unless -Dcleanui.preview=true
 
-		// Show a Clean UI page in place of certain Hypixel menus (only on Hypixel).
-		ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
-			if (!(screen instanceof AbstractContainerScreen<?> menu) || screen == MenuPage.showingOriginal || !onHypixel()) return;
-			String title = ChatFormatting.stripFormatting(screen.getTitle().getString());
-			Screen page = pageFor(title, menu);
-			if (page != null) client.execute(() -> client.setScreenAndShow(page)); // after init finishes
-			else if (SEEN_TITLES.add(title)) LOGGER.info("[Clean UI] Menu without a Clean UI page: '{}'", title);
-		});
+		// Hypixel menus are swapped for their Clean UI page in GuiMixin, before they are shown.
+	}
+
+	/** Called for every screen Minecraft is about to show: a Hypixel menu with a Clean UI page becomes that page. */
+	public static Screen swap(Screen screen) {
+		if (!(screen instanceof AbstractContainerScreen<?> menu) || screen == MenuPage.showingOriginal || !onHypixel()) return screen;
+		String title = ChatFormatting.stripFormatting(screen.getTitle().getString());
+		Screen page = pageFor(title, menu);
+		if (page != null) return page;
+		if (SEEN_TITLES.add(title)) LOGGER.info("[Clean UI] Menu without a Clean UI page: '{}'", title);
+		return screen;
 	}
 
 	public static boolean onHypixel() {
