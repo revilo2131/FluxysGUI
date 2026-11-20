@@ -8,6 +8,13 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class CollectionParserTest {
 	@Test
+	void skyblockLevel() {
+		assertEquals(312, CollectionParser.parse("SkyBlock Level", List.of("Your SkyBlock Level: [312]")).tier());
+		assertEquals(312, CollectionParser.levelFromProgress(List.of("", "Progress to Level 313: 45%")));
+		assertEquals(-1, CollectionParser.levelFromProgress(List.of("45/100 XP")));
+	}
+
+	@Test
 	void collectionWithTierAndProgress() {
 		var e = CollectionParser.parse("Wheat XI", List.of(
 				"Progress to Wheat XII: 45.2%", "               55,000/100k", "", "Total Collected: 1,234,567", "", "Click to view!"));

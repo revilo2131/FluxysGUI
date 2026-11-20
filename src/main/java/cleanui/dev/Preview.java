@@ -71,6 +71,7 @@ public final class Preview {
 			new Shot("hotm", Preview::fakeHotm, -1, -1),
 			new Shot("hotm-hover", Preview::fakeHotm, 470, 355),
 			new Shot("dungeons", Preview::fakeDungeons, -1, -1),
+			new Shot("leveling", Preview::fakeLeveling, -1, -1),
 			new Shot("hotm-reset", Preview::fakeHotmReset, -1, -1),
 			new Shot("hotm-swap", Preview::fakeHotmSwap, -1, -1));
 	private static final int START = 80, EACH = 40;
@@ -327,6 +328,22 @@ public final class Preview {
 		put(c, 32, Items.ENDER_EYE, "Boss Collections", "Collections Unlocked: 5/7");
 		put(c, 48, Items.ARROW, "Go Back");
 		return CleanUi.pageFor("Dungeoneering", menu(mc, c, "Dungeoneering"));
+	}
+
+	/** Guessed SkyBlock Leveling layout (real one not logged yet): level, task categories, extras. */
+	private static Screen fakeLeveling(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		put(c, 13, Items.PLAYER_HEAD, "SkyBlock Level", "Your SkyBlock Level: [312]", "", "Progress to Level 313: 45%", "45/100 XP");
+		Object[][] tasks = {{Items.NETHER_STAR, "Core Tasks", "62"}, {Items.CAKE, "Event Tasks", "38"}, {Items.WITHER_SKELETON_SKULL, "Dungeon Tasks", "71"},
+				{Items.DRAGON_BREATH, "Essence Shop Tasks", "44"}, {Items.GOLDEN_SWORD, "Slaying Tasks", "55"}, {Items.DIAMOND_PICKAXE, "Skill Related Tasks", "80"},
+				{Items.BOOK, "Miscellaneous Tasks", "23"}, {Items.MAP, "Story Tasks", "100"}};
+		for (int i = 0; i < tasks.length; i++)
+			put(c, 28 + i + (i / 4), (Item) tasks[i][0], (String) tasks[i][1], "Progress to complete category: " + tasks[i][2] + "%", "", "Click to view tasks!");
+		put(c, 39, Items.CHEST, "Leveling Rewards", "Rewards unlocked: 31/40");
+		put(c, 40, Items.NAME_TAG, "Prefix Colors", "Unlock new name colors.");
+		put(c, 41, Items.ITEM_FRAME, "Emblems", "Emblems unlocked: 9/30");
+		put(c, 48, Items.ARROW, "Go Back");
+		return CleanUi.pageFor("SkyBlock Leveling", menu(mc, c, "SkyBlock Leveling"));
 	}
 
 	/** A confirmation opened from HOTM: becomes a dialog card. */
