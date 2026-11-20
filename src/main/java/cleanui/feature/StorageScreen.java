@@ -13,6 +13,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +50,7 @@ public final class StorageScreen extends MenuPage {
 	private Button open;
 
 	public StorageScreen(AbstractContainerScreen<?> original) {
-		super(Tab.STORAGE, original);
+		super("Storage", new ItemStack(Items.ENDER_CHEST), 1, original);
 	}
 
 	@Override

@@ -138,6 +138,14 @@ public final class Theme {
 				mouseX, mouseY, TOOLTIP_STYLE);
 	}
 
+	/** {@code text} shortened with "…" so it fits in {@code maxW} px. */
+	public static String fit(net.minecraft.client.gui.Font font, String text, int maxW) {
+		if (font.width(text) <= maxW) return text;
+		String s = text;
+		while (!s.isEmpty() && font.width(s + "…") > maxW) s = s.substring(0, s.length() - 1);
+		return s.strip() + "…";
+	}
+
 	/**
 	 * Draws {@code left} at x and {@code right} right-aligned at x + w, dropping
 	 * {@code left} if the two would touch. Keeps rows from ever overlapping.

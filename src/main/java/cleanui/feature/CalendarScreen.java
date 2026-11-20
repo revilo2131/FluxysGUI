@@ -7,6 +7,7 @@ import cleanui.ui.Button;
 import cleanui.ui.Theme;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -17,10 +18,14 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * SkyBlock calendar: today's date, a browsable month grid with event markers, and a live
- * list of active and upcoming events. Everything is computed from the clock.
+ * SkyBlock calendar, shown in place of Hypixel's "Calendar and Events" menu: a browsable
+ * month grid with event markers, this month's events, and a live list of active and
+ * upcoming events. Everything is computed from the clock; the menu is only kept open
+ * so Back and "Original menu" work.
  */
-public final class CalendarScreen extends Window {
+public final class CalendarScreen extends MenuPage {
+	public static final String MENU_TITLE = "Calendar and Events";
+
 	/** Item shown next to each event; vanilla items close to what SkyBlock itself uses. */
 	private static final Map<String, ItemStack> EVENT_ITEMS = Map.of(
 			"Hoppity's Hunt", new ItemStack(Items.RABBIT_FOOT),
@@ -40,8 +45,8 @@ public final class CalendarScreen extends Window {
 	private final Anim slide = new Anim(0f, 16f);
 	private int viewYear, viewMonth;
 
-	public CalendarScreen() {
-		super(Tab.CALENDAR);
+	public CalendarScreen(AbstractContainerScreen<?> original) {
+		super("Calendar", new ItemStack(Items.CLOCK), 1, original);
 		SkyblockTime.Date today = SkyblockTime.at(SkyblockTime.now());
 		viewYear = today.year();
 		viewMonth = today.month();
@@ -58,6 +63,7 @@ public final class CalendarScreen extends Window {
 				.tooltip(Component.literal("Previous month")).body());
 		addRenderableWidget(new Button(bx() + GRID_W - 18, by() + NAV_Y, 18, 14, Component.literal(">"), () -> shiftMonth(1))
 				.tooltip(Component.literal("Next month")).body());
+		addRenderableWidget(originalMenuButton(bx() + BW - 86, by() + BH - 18));
 	}
 
 	private void shiftMonth(int dir) {

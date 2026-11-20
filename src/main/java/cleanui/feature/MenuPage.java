@@ -28,8 +28,8 @@ public abstract class MenuPage extends Window {
 	protected final AbstractContainerScreen<?> original;
 	private final long openedAt = System.currentTimeMillis();
 
-	protected MenuPage(Tab tab, AbstractContainerScreen<?> original) {
-		super(tab);
+	protected MenuPage(String title, ItemStack icon, int depth, AbstractContainerScreen<?> original) {
+		super(title, icon, depth);
 		this.original = original;
 	}
 
@@ -54,6 +54,17 @@ public abstract class MenuPage extends Window {
 			return true;
 		}
 		return false;
+	}
+
+	/** Back = the menu's own "Go Back" button; if it has none, /sbmenu (same as typing it). */
+	@Override
+	protected void goBack() {
+		for (MenuItem item : menuItems())
+			if (item.name().equals("Go Back")) {
+				click(item.slot(), 0);
+				return;
+			}
+		minecraft.getConnection().sendCommand("sbmenu");
 	}
 
 	/** Exactly one normal click on that menu slot, same as clicking it in the chest. */
@@ -87,12 +98,7 @@ public abstract class MenuPage extends Window {
 	}
 
 	@Override
-	protected void leaving() {
-		minecraft.player.closeContainer(); // closes the real menu on the server too
-	}
-
-	@Override
 	protected void closed() {
-		minecraft.player.closeContainer();
+		minecraft.player.closeContainer(); // closes the real menu on the server too
 	}
 }

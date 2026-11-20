@@ -46,8 +46,8 @@ public final class SkillsScreen extends MenuPage {
 	private static final List<String> NOT_IN_AVERAGE = List.of("Runecrafting", "Social");
 
 	private static final int TOP = 26; // below the summary bar
-	private static final int MAIN_W = 280, CARD_GAP = 8, CARD_H = 46;
-	private static final int LIST_X = MAIN_W + 10, LIST_W = BW - LIST_X, ROW_H = 20, ROW_STEP = 22, GROUP_GAP = 10;
+	private static final int MAIN_W = 280, CARD_GAP = 8, CARD_H = 50;
+	private static final int LIST_X = MAIN_W + 10, LIST_W = BW - LIST_X, ROW_H = 21, ROW_STEP = 24, GROUP_GAP = 10;
 	private static final Logger LOGGER = LoggerFactory.getLogger("cleanui");
 
 	private record Entry(int menuSlot, ItemStack stack, SkillParser.Skill skill) {}
@@ -66,7 +66,7 @@ public final class SkillsScreen extends MenuPage {
 	private Button dungeons;
 
 	public SkillsScreen(AbstractContainerScreen<?> original) {
-		super(Tab.SKILLS, original);
+		super("Skills", new ItemStack(Items.DIAMOND_SWORD), 1, original);
 	}
 
 	@Override

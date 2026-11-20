@@ -39,14 +39,15 @@ public final class Preview {
 
 	// mouse positions are GUI coords for a 960×540 GUI (1920×1080 at GUI scale 2)
 	private static final List<Shot> SHOTS = List.of(
-			new Shot("overview", mc -> new OverviewScreen(), -1, -1),
-			new Shot("overview-gear", mc -> new OverviewScreen(), 285, 230),
-			new Shot("calendar", mc -> new CalendarScreen(), 300, 250),
+			new Shot("overview", Preview::fakeSkyBlockMenu, -1, -1),
+			new Shot("overview-tile", Preview::fakeSkyBlockMenu, 339, 268),
+			new Shot("overview-hero", Preview::fakeSkyBlockMenu, 520, 192),
+			new Shot("calendar", Preview::fakeCalendar, 300, 232),
 			new Shot("skills", Preview::fakeSkills, -1, -1),
-			new Shot("skills-card", Preview::fakeSkills, 450, 290),
-			new Shot("skills-row", Preview::fakeSkills, 600, 268),
-			new Shot("storage", Preview::fakeStorage, 380, 300),
-			new Shot("storage-item", Preview::fakeStorage, 548, 247),
+			new Shot("skills-card", Preview::fakeSkills, 450, 272),
+			new Shot("skills-row", Preview::fakeSkills, 600, 250),
+			new Shot("storage", Preview::fakeStorage, 380, 282),
+			new Shot("storage-item", Preview::fakeStorage, 548, 229),
 			// capture → save → reload from disk: page 3 must show 45 items with the nav row dropped
 			new Shot("capture", Preview::fakeEnderChestPage, -1, -1),
 			new Shot("storage-reloaded", Preview::storageAfterReload, -1, -1));
@@ -82,6 +83,43 @@ public final class Preview {
 		}
 		if (phase == EACH - 5)
 			Screenshot.grab(mc.gameDirectory, "preview-" + s.name() + ".png", mc.gameRenderer.mainRenderTarget(), 1, msg -> {});
+	}
+
+	/** Overview over a fake SkyBlock Menu: glass filler, the usual buttons, and Close. */
+	private static Screen fakeSkyBlockMenu(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		for (int i = 0; i < 54; i++) put(c, i, Items.GLASS_PANE, " ");
+		// same slots as the real menu (Nov 2026)
+		put(c, 10, Items.AMETHYST_CLUSTER, "Heart of the Mountain", "View your Heart of the Mountain tree.");
+		put(c, 13, Items.PLAYER_HEAD, "Your SkyBlock Profile", "Health 1,200", "Defense 450", "Strength 210", "", "Click to view your profile!");
+		put(c, 19, Items.DIAMOND_SWORD, "Your Skills", "View your Skill progression and rewards.");
+		put(c, 20, Items.PAINTING, "Collections", "View all of the items available in SkyBlock.");
+		put(c, 21, Items.BOOK, "Recipe Book", "Through your adventure, you will unlock recipes.");
+		put(c, 22, Items.EXPERIENCE_BOTTLE, "SkyBlock Leveling", "Your SkyBlock Level and rewards.");
+		put(c, 23, Items.WRITABLE_BOOK, "Quest Log", "View your active quests.");
+		put(c, 24, Items.CLOCK, "Calendar and Events", "View the SkyBlock Calendar.");
+		put(c, 25, Items.CHEST, "Storage", "Store items in your Ender Chest and Backpacks.");
+		put(c, 29, Items.LEATHER, "Your Bags", "Different bags allow you to store items.");
+		put(c, 30, Items.BONE, "Pets", "View and manage all of your Pets.");
+		put(c, 31, Items.CRAFTING_TABLE, "Crafting Table", "Opens the crafting grid.");
+		put(c, 32, Items.LEATHER_CHESTPLATE, "Wardrobe", "Store armor sets and quickly swap.");
+		put(c, 33, Items.GOLD_INGOT, "Personal Bank", "Contact your Banker from anywhere.");
+		put(c, 47, Items.FILLED_MAP, "Fast Travel", "Teleport to islands you've already visited.");
+		put(c, 48, Items.NAME_TAG, "Profile Management", "Create and manage your profiles.");
+		put(c, 49, Items.BARRIER, "Close");
+		put(c, 50, Items.REDSTONE_TORCH, "Settings", "View and edit your SkyBlock settings.");
+		put(c, 51, Items.COOKIE, "Booster Cookie", "Obtain the Cookie Buff.");
+		return new OverviewScreen(menu(mc, c, OverviewScreen.MENU_TITLE));
+	}
+
+	private static Screen fakeCalendar(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		put(c, 48, Items.ARROW, "Go Back");
+		return new CalendarScreen(menu(mc, c, CalendarScreen.MENU_TITLE));
+	}
+
+	private static ContainerScreen menu(Minecraft mc, SimpleContainer c, String title) {
+		return new ContainerScreen(ChestMenu.sixRows(3, mc.player.getInventory(), c), mc.player.getInventory(), Component.literal(title));
 	}
 
 	/** Skills page over a fake menu with the same data as a real one seen on Hypixel. */

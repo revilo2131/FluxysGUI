@@ -2,6 +2,7 @@ package cleanui;
 
 import cleanui.data.StorageCache;
 import cleanui.dev.Preview;
+import cleanui.feature.CalendarScreen;
 import cleanui.feature.MenuPage;
 import cleanui.feature.OverviewScreen;
 import cleanui.feature.SkillsScreen;
@@ -18,19 +19,28 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 public final class CleanUi implements ClientModInitializer {
 	public static final String ID = "cleanui";
+	private static final Logger LOGGER = LoggerFactory.getLogger(ID);
 
 	/** Hypixel menus (by title) that are shown as a Clean UI page instead. */
 	private static final Map<String, Function<AbstractContainerScreen<?>, Screen>> MENU_PAGES = Map.of(
+			OverviewScreen.MENU_TITLE, OverviewScreen::new,
 			SkillsScreen.MENU_TITLE, SkillsScreen::new,
-			StorageParser.MENU_TITLE, StorageScreen::new);
+			StorageParser.MENU_TITLE, StorageScreen::new,
+			CalendarScreen.MENU_TITLE, CalendarScreen::new);
+	private static final Set<String> SEEN_TITLES = new HashSet<>();
 
 	@Override
 	public void onInitializeClient() {
@@ -39,7 +49,12 @@ public final class CleanUi implements ClientModInitializer {
 				new KeyMapping("key.cleanui.open", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, category));
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
-			while (open.consumeClick()) client.setScreenAndShow(new OverviewScreen());
+			while (open.consumeClick()) {
+				// same as clicking the SkyBlock Menu star: one /sbmenu, shown as the Clean UI overview
+				if (onHypixel()) client.getConnection().sendCommand("sbmenu");
+				else if (client.player != null)
+					client.player.sendSystemMessage(Component.literal("[Clean UI] Open the SkyBlock Menu on Hypixel SkyBlock."));
+			}
 		});
 		StorageCache.init();
 		Preview.init(); // dev only; does nothing unless -Dcleanui.preview=true
@@ -47,8 +62,10 @@ public final class CleanUi implements ClientModInitializer {
 		// Show a Clean UI page in place of certain Hypixel menus (only on Hypixel).
 		ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
 			if (!(screen instanceof AbstractContainerScreen<?> menu) || screen == MenuPage.showingOriginal || !onHypixel()) return;
-			var page = MENU_PAGES.get(ChatFormatting.stripFormatting(screen.getTitle().getString()));
+			String title = ChatFormatting.stripFormatting(screen.getTitle().getString());
+			var page = MENU_PAGES.get(title);
 			if (page != null) client.execute(() -> client.setScreenAndShow(page.apply(menu))); // after init finishes
+			else if (SEEN_TITLES.add(title)) LOGGER.info("[Clean UI] Menu without a Clean UI page: '{}'", title);
 		});
 	}
 
