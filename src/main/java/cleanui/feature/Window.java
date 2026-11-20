@@ -57,6 +57,11 @@ public abstract class Window extends CleanScreen {
 	/** The header's back button (pages below the overview only). */
 	protected void goBack() {}
 
+	/** Breadcrumb before this page's title: the page Back returns to. */
+	protected String crumb() {
+		return HOME;
+	}
+
 	protected int left() {
 		return (width - W) / 2;
 	}
@@ -88,7 +93,7 @@ public abstract class Window extends CleanScreen {
 	protected final void init() {
 		if (depth > 0)
 			addRenderableWidget(new Button(left() + EDGE, top() + 5, 16, 14, Component.literal("‹"), this::goBack)
-					.tooltip(Component.literal("Back to the SkyBlock Menu")));
+					.tooltip(Component.literal("Back to " + crumb())));
 		initBody();
 	}
 
@@ -109,7 +114,7 @@ public abstract class Window extends CleanScreen {
 		Theme.item(g, icon, hx, y + 6, 12, a);
 		hx += 16;
 		if (depth > 0) {
-			String crumb = HOME + "  ›  ";
+			String crumb = crumb() + "  ›  ";
 			g.text(font, crumb, hx, y + 8, Theme.argb(Theme.TEXT_MUTED, a), true);
 			hx += font.width(crumb);
 		}

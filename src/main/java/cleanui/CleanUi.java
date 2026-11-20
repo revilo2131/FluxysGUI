@@ -3,6 +3,7 @@ package cleanui;
 import cleanui.data.StorageCache;
 import cleanui.dev.Preview;
 import cleanui.feature.CalendarScreen;
+import cleanui.feature.CollectionsScreen;
 import cleanui.feature.MenuPage;
 import cleanui.feature.OverviewScreen;
 import cleanui.feature.SkillsScreen;
@@ -63,8 +64,9 @@ public final class CleanUi implements ClientModInitializer {
 		ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
 			if (!(screen instanceof AbstractContainerScreen<?> menu) || screen == MenuPage.showingOriginal || !onHypixel()) return;
 			String title = ChatFormatting.stripFormatting(screen.getTitle().getString());
-			var page = MENU_PAGES.get(title);
-			if (page != null) client.execute(() -> client.setScreenAndShow(page.apply(menu))); // after init finishes
+			var exact = MENU_PAGES.get(title);
+			Screen page = exact != null ? exact.apply(menu) : CollectionsScreen.forTitle(title, menu);
+			if (page != null) client.execute(() -> client.setScreenAndShow(page)); // after init finishes
 			else if (SEEN_TITLES.add(title)) LOGGER.info("[Clean UI] Menu without a Clean UI page: '{}'", title);
 		});
 	}

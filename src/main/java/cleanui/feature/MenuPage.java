@@ -11,8 +11,13 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemLore;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A page drawn in place of one of Hypixel's chest menus. The real menu stays open underneath:
@@ -24,6 +29,10 @@ public abstract class MenuPage extends Window {
 	public static Screen showingOriginal;
 
 	private static final long FALLBACK_MS = 2500;
+	private static final Logger LOGGER = LoggerFactory.getLogger("cleanui");
+	private static final Set<String> LOGGED_MENUS = new HashSet<>();
+	/** Menu items that are navigation, not content. */
+	protected static final Set<String> NAV = Set.of("Go Back", "Close", "Next Page", "Previous Page");
 
 	protected final AbstractContainerScreen<?> original;
 	private final long openedAt = System.currentTimeMillis();
@@ -65,6 +74,18 @@ public abstract class MenuPage extends Window {
 				return;
 			}
 		minecraft.getConnection().sendCommand("sbmenu");
+	}
+
+	/**
+	 * Logs every item in this menu (name + tooltip) once per menu title per session, so the
+	 * exact wording can be checked in latest.log when a page doesn't read a menu right.
+	 */
+	protected void logMenuOnce(List<MenuItem> items) {
+		String title = getTitle().getString() + " / " + original.getTitle().getString();
+		if (items.isEmpty() || !LOGGED_MENUS.add(title)) return;
+		StringBuilder sb = new StringBuilder("[Clean UI] Menu '" + original.getTitle().getString() + "':");
+		for (MenuItem item : items) sb.append("\n  slot ").append(item.slot()).append(" '").append(item.name()).append("' ").append(item.lore());
+		LOGGER.info(sb.toString());
 	}
 
 	/** Exactly one normal click on that menu slot, same as clicking it in the chest. */

@@ -2,6 +2,7 @@ package cleanui.dev;
 
 import cleanui.data.StorageCache;
 import cleanui.feature.CalendarScreen;
+import cleanui.feature.CollectionsScreen;
 import cleanui.feature.OverviewScreen;
 import cleanui.feature.SkillsScreen;
 import cleanui.feature.StorageScreen;
@@ -50,7 +51,9 @@ public final class Preview {
 			new Shot("storage-item", Preview::fakeStorage, 548, 229),
 			// capture → save → reload from disk: page 3 must show 45 items with the nav row dropped
 			new Shot("capture", Preview::fakeEnderChestPage, -1, -1),
-			new Shot("storage-reloaded", Preview::storageAfterReload, -1, -1));
+			new Shot("storage-reloaded", Preview::storageAfterReload, -1, -1),
+			new Shot("collections", Preview::fakeCollections, -1, -1),
+			new Shot("collections-farming", Preview::fakeFarmingCollections, 330, 230));
 	private static final int START = 80, EACH = 40;
 	private static int ticks;
 
@@ -110,6 +113,51 @@ public final class Preview {
 		put(c, 50, Items.REDSTONE_TORCH, "Settings", "View and edit your SkyBlock settings.");
 		put(c, 51, Items.COOKIE, "Booster Cookie", "Obtain the Cookie Buff.");
 		return new OverviewScreen(menu(mc, c, OverviewScreen.MENU_TITLE));
+	}
+
+	/** Main Collections menu; lore shapes vary on purpose to exercise the loose parser. */
+	private static Screen fakeCollections(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		put(c, 20, Items.GOLDEN_HOE, "Farming Collections", "View your Farming Collections!", "", "Collections Unlocked: 80%", "12/15");
+		put(c, 21, Items.STONE_PICKAXE, "Mining Collections", "View your Mining Collections!", "", "Collections Unlocked: 61%", "14/23");
+		put(c, 22, Items.STONE_SWORD, "Combat Collections", "View your Combat Collections!", "", "Collections Maxed Out: 4/11");
+		put(c, 23, Items.JUNGLE_SAPLING, "Foraging Collections", "View your Foraging Collections!", "", "7/7");
+		put(c, 24, Items.FISHING_ROD, "Fishing Collections", "View your Fishing Collections!", "", "Collections Unlocked: 44%");
+		put(c, 30, Items.MYCELIUM, "Rift Collections", "View your Rift Collections!");
+		put(c, 32, Items.WITHER_SKELETON_SKULL, "Boss Collections", "View your Boss Collections!", "", "3/8");
+		put(c, 48, Items.ARROW, "Go Back");
+		put(c, 49, Items.BARRIER, "Close");
+		return CollectionsScreen.forTitle("Collections", menu(mc, c, "Collections"));
+	}
+
+	private static Screen fakeFarmingCollections(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		Object[][] rows = {
+				{Items.WHEAT, "Wheat XI", "Progress to Wheat XII: 45.2%", "55,000/100k", "Total Collected: 1,234,567"},
+				{Items.CARROT, "Carrot IX", "Progress to Carrot X: 12%", "Total Collected: 402,113"},
+				{Items.POTATO, "Potato VIII", "Progress to Potato IX: 78.5%", "Total Collected: 221,980"},
+				{Items.PUMPKIN, "Pumpkin X", "Progress to Pumpkin XI: 3.1%", "Total Collected: 2,550,000"},
+				{Items.MELON_SLICE, "Melon IX", "Progress to Melon X: 60%", "Total Collected: 980,400"},
+				{Items.WHEAT_SEEDS, "Seeds VI", "Progress to Seeds VII: 22%", "Total Collected: 41,000"},
+				{Items.RED_MUSHROOM, "Mushroom VII", "Progress to Mushroom VIII: 91%", "Total Collected: 88,210"},
+				{Items.COCOA_BEANS, "Cocoa Beans X", "Progress to Cocoa Beans XI: 54%", "Total Collected: 1,800,000"},
+				{Items.CACTUS, "Cactus IX", "Collection Maxed Out!", "Total Collected: 10,500,000"},
+				{Items.SUGAR_CANE, "Sugar Cane VIII", "Progress to Sugar Cane IX: 35%", "Total Collected: 305,000"},
+				{Items.FEATHER, "Feather V", "Progress to Feather VI: 66%", "Total Collected: 12,400"},
+				{Items.LEATHER, "Leather IV", "Progress to Leather V: 8%", "Total Collected: 3,100"},
+				{Items.PORKCHOP, "Raw Porkchop VI", "Progress to Raw Porkchop VII: 40%", "Total Collected: 25,000"},
+				{Items.NETHER_WART, "Nether Wart IX", "Progress to Nether Wart X: 71%", "Total Collected: 2,500,000"},
+				{Items.FLINT, "Mutton", "Find this item to add it to your", "collection and unlock rewards!"},
+		};
+		int[] slots = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28};
+		for (int i = 0; i < rows.length; i++) {
+			String[] lore = new String[rows[i].length - 2];
+			for (int j = 2; j < rows[i].length; j++) lore[j - 2] = (String) rows[i][j];
+			put(c, slots[i], (Item) rows[i][0], (String) rows[i][1], lore);
+		}
+		put(c, 48, Items.ARROW, "Go Back");
+		put(c, 53, Items.ARROW, "Next Page");
+		return CollectionsScreen.forTitle("Farming Collections", menu(mc, c, "Farming Collections"));
 	}
 
 	private static Screen fakeCalendar(Minecraft mc) {
