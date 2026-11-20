@@ -11,6 +11,7 @@
 	"entrypoints": {
 		"client": ["cleanui.CleanUi"]
 	},
+	"mixins": ["cleanui.mixins.json"],
 	"depends": {
 		"fabricloader": ">=0.20.1",
 		"minecraft": "~26.2",

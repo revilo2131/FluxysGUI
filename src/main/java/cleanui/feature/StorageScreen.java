@@ -8,7 +8,9 @@ import cleanui.skyblock.StorageParser.PageId;
 import cleanui.ui.Anim;
 import cleanui.ui.Button;
 import cleanui.ui.Theme;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -22,6 +24,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -36,8 +39,13 @@ public final class StorageScreen extends MenuPage {
 	private static final int PANEL_X = LIST_W + 12, PANEL_W = BW - PANEL_X, SLOT = 18, COLS = 9;
 	private static final Logger LOGGER = LoggerFactory.getLogger("cleanui");
 	private static final Set<String> LOGGED = new HashSet<>();
-	/** Last selected page, kept between opens. */
+	/** Search box on top, the page list below it. */
+	private static final int SEARCH_H = 16, LIST_TOP = 20, LIST_H = BH - LIST_TOP;
+	/** Last selected page and search, kept between opens. */
 	private static PageId lastSelected;
+	private static String lastQuery = "";
+
+	private static final ItemStack SPYGLASS = new ItemStack(Items.SPYGLASS);
 
 	private record Entry(PageId id, int menuSlot, ItemStack icon) {}
 
@@ -48,6 +56,7 @@ public final class StorageScreen extends MenuPage {
 	private float scrollTarget;
 	private List<Entry> entries = List.of();
 	private Button open;
+	private EditBox search;
 
 	public StorageScreen(AbstractContainerScreen<?> original) {
 		super("Storage", new ItemStack(Items.ENDER_CHEST), 1, original);
@@ -64,16 +73,57 @@ public final class StorageScreen extends MenuPage {
 		open = addRenderableWidget(new Button(px + PANEL_W - 52, by(), 52, 18, Component.literal("Open"), this::openSelected)
 				.color(Theme.ACCENT).tooltip(Component.literal("Open this page in Hypixel's menu.")).body());
 		addRenderableWidget(originalMenuButton(px + PANEL_W - 86, by() + BH - 18));
+		search = addRenderableWidget(new EditBox(font, bx() + 18, by() + 4, LIST_W - 6 - 22, 10, Component.literal("Search")));
+		search.setBordered(false);
+		search.setMaxLength(40);
+		search.setTextColor(Theme.argb(Theme.TEXT, 1f));
+		search.setHint(Component.literal("Search your storage…").withColor(Theme.TEXT_MUTED));
+		search.setValue(lastQuery);
+		search.setResponder(q -> {
+			lastQuery = q;
+			scrollTarget = 0;
+		});
+	}
+
+	private String query() {
+		return lastQuery.strip().toLowerCase(Locale.ROOT);
+	}
+
+	private static boolean matches(ItemStack s, String q) {
+		return !s.isEmpty() && ChatFormatting.stripFormatting(s.getHoverName().getString()).toLowerCase(Locale.ROOT).contains(q);
+	}
+
+	private static int matchCount(StorageCache.Page page, String q) {
+		int n = 0;
+		for (ItemStack s : page.items()) if (matches(s, q)) n++;
+		return n;
+	}
+
+	/** Pages in the list: all of them, or with a search only remembered pages that contain a match. */
+	private List<Entry> visible() {
+		String q = query();
+		if (q.isEmpty()) return entries;
+		List<Entry> list = new ArrayList<>();
+		for (Entry e : entries) {
+			StorageCache.Page page = StorageCache.get(e.id());
+			if (page != null && matchCount(page, q) > 0) list.add(e);
+		}
+		return list;
 	}
 
 	/** Dev preview only. */
+	public static void searchForPreview(String query) {
+		lastQuery = query;
+	}
+
 	public static void selectForPreview(PageId id) {
 		lastSelected = id;
 	}
 
 	private Entry selected() {
-		for (Entry e : entries) if (e.id().equals(lastSelected)) return e;
-		return entries.isEmpty() ? null : entries.getFirst();
+		List<Entry> list = visible();
+		for (Entry e : list) if (e.id().equals(lastSelected)) return e;
+		return list.isEmpty() ? null : list.getFirst();
 	}
 
 	private void openSelected() {
@@ -99,7 +149,7 @@ public final class StorageScreen extends MenuPage {
 		List<Row> rows = new ArrayList<>();
 		int y = 0;
 		Kind kind = null;
-		for (Entry e : entries) {
+		for (Entry e : visible()) {
 			if (e.id().kind() != kind) {
 				kind = e.id().kind();
 				if (y > 0) y += 4;
@@ -127,23 +177,31 @@ public final class StorageScreen extends MenuPage {
 			g.text(font, loading, bx() + (BW - font.width(loading)) / 2, by() + BH / 2, Theme.argb(Theme.TEXT_MUTED, a), true);
 			return;
 		}
+		// search box: drawn here, typed into by the EditBox on top
+		Theme.box(g, bx(), by(), LIST_W - 6, SEARCH_H, Theme.SLOT, a, search.isFocused() ? Theme.FRAME : Theme.LINE, a);
+		Theme.item(g, SPYGLASS, bx() + 4, by() + 3, 10, a);
 		extractList(g, mouseX, mouseY, sel, a);
-		extractPage(g, sel, mouseX, mouseY, a);
+		if (sel != null) extractPage(g, sel, mouseX, mouseY, a);
 	}
 
 	private void extractList(GuiGraphicsExtractor g, int mouseX, int mouseY, Entry sel, float a) {
-		int x = bx(), y = by();
+		int x = bx(), y = by() + LIST_TOP;
 		List<Row> rows = rows();
-		int max = Math.max(0, contentHeight(rows) - BH);
+		int max = Math.max(0, contentHeight(rows) - LIST_H);
 		scrollTarget = Math.clamp(scrollTarget, 0, max);
 		scroll.target(scrollTarget);
 		int off = Math.round(scroll.get());
-		boolean inList = mouseX >= x && mouseX < x + LIST_W && mouseY >= y && mouseY < y + BH;
+		boolean inList = mouseX >= x && mouseX < x + LIST_W && mouseY >= y && mouseY < y + LIST_H;
+		String q = query();
+		if (rows.isEmpty() && !q.isEmpty()) {
+			String[] lines = {"No matches in the pages", "Clean UI has seen."};
+			for (int i = 0; i < lines.length; i++) Theme.label(g, font, lines[i], x + 4, y + 8 + i * 11, a);
+		}
 
-		g.enableScissor(x, y, x + LIST_W, y + BH);
+		g.enableScissor(x, y, x + LIST_W, y + LIST_H);
 		for (Row r : rows) {
 			int ry = y + r.y() - off;
-			if (ry + ROW_H < y || ry > y + BH) continue; // off screen
+			if (ry + ROW_H < y || ry > y + LIST_H) continue; // off screen
 			if (r.entry() == null) {
 				Theme.divider(g, font, r.label(), x, ry + 2, LIST_W - 6, a);
 				continue;
@@ -157,14 +215,14 @@ public final class StorageScreen extends MenuPage {
 			g.fill(x + 1, ry + 1, x + (isSel ? 4 : 3), ry + ROW_H - 1, Theme.argb(color, a));
 			Theme.item(g, e.icon(), x + 7, ry + 3, 16, a);
 			StorageCache.Page page = StorageCache.get(e.id());
-			String info = page == null ? "not opened" : count(page) + " items";
+			String info = page == null ? "not opened" : q.isEmpty() ? count(page) + " items" : matchCount(page, q) + " found";
 			Theme.textLeader(g, font, e.id().label(), Theme.TEXT, info, page == null ? Theme.mix(Theme.TEXT_MUTED, Theme.PANEL, 0.3f) : Theme.ACCENT,
 					x + 28, ry + 7, LIST_W - 6 - 28 - 7, a);
 		}
 		g.disableScissor();
 
 		if (max > 0) { // scrollbar
-			int trackH = BH, thumbH = Math.max(16, trackH * BH / (BH + max)), thumbY = y + Math.round((trackH - thumbH) * (off / (float) max));
+			int trackH = LIST_H, thumbH = Math.max(16, trackH * LIST_H / (LIST_H + max)), thumbY = y + Math.round((trackH - thumbH) * (off / (float) max));
 			g.fill(x + LIST_W - 2, y, x + LIST_W, y + trackH, Theme.argb(Theme.SLOT, a));
 			g.fill(x + LIST_W - 2, thumbY, x + LIST_W, thumbY + thumbH, Theme.argb(Theme.TEXT_MUTED, a));
 		}
@@ -186,14 +244,17 @@ public final class StorageScreen extends MenuPage {
 		}
 		List<ItemStack> items = page.items();
 		int rows = Math.min(6, (items.size() + COLS - 1) / COLS);
+		String q = query();
 		ItemStack hovered = null;
 		for (int i = 0; i < Math.min(items.size(), rows * COLS); i++) {
 			int sx = gx + (i % COLS) * SLOT, sy = gy + (i / COLS) * SLOT;
-			Theme.box(g, sx, sy, SLOT, SLOT, Theme.SLOT, a, Theme.mix(Theme.LINE, Theme.FRAME, 0.25f), a);
 			ItemStack s = items.get(i);
+			boolean hit = !q.isEmpty() && matches(s, q);
+			Theme.box(g, sx, sy, SLOT, SLOT, Theme.SLOT, a, hit ? Theme.ACCENT : Theme.mix(Theme.LINE, Theme.FRAME, 0.25f), a);
 			if (s.isEmpty()) continue;
 			Theme.item(g, s, sx + 1, sy + 1, 16, a);
 			if (s.getCount() > 1 && a > 0.5f) g.itemDecorations(font, s, sx + 1, sy + 1); // stack count
+			if (!q.isEmpty() && !hit) g.fill(sx + 1, sy + 1, sx + SLOT - 1, sy + SLOT - 1, Theme.argb(Theme.PANEL, a * 0.7f)); // dim non-matches
 			if (mouseX >= sx && mouseX < sx + SLOT && mouseY >= sy && mouseY < sy + SLOT) hovered = s;
 		}
 		// how full the page is, as an angled bar with the count inside
@@ -210,19 +271,19 @@ public final class StorageScreen extends MenuPage {
 	}
 
 	@Override
-	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-		if (mouseX >= bx() && mouseX < bx() + LIST_W && mouseY >= by() && mouseY < by() + BH) {
+	protected boolean scrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+		if (mouseX >= bx() && mouseX < bx() + LIST_W && mouseY >= by() + LIST_TOP && mouseY < by() + BH) {
 			scrollTarget -= (float) scrollY * ROW_STEP * 2;
 			return true;
 		}
-		return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+		return super.scrolled(mouseX, mouseY, scrollX, scrollY);
 	}
 
 	@Override
-	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-		if (super.mouseClicked(event, doubleClick)) return true;
-		int x = bx(), y = by(), off = Math.round(scroll.get());
-		if (event.x() < x || event.x() >= x + LIST_W - 6 || event.y() < y || event.y() >= y + BH) return false;
+	protected boolean clicked(MouseButtonEvent event, boolean doubleClick) {
+		if (super.clicked(event, doubleClick)) return true;
+		int x = bx(), y = by() + LIST_TOP, off = Math.round(scroll.get());
+		if (event.x() < x || event.x() >= x + LIST_W - 6 || event.y() < y || event.y() >= y + LIST_H) return false;
 		for (Row r : rows()) {
 			int ry = y + r.y() - off;
 			if (r.entry() != null && event.y() >= ry && event.y() < ry + ROW_H) {

@@ -1,8 +1,12 @@
 package cleanui.dev;
 
 import cleanui.data.StorageCache;
+import cleanui.CleanUi;
 import cleanui.feature.CalendarScreen;
-import cleanui.feature.CollectionsScreen;
+import cleanui.feature.SettingsScreen;
+import cleanui.skyblock.CollectionParser;
+import net.minecraft.world.item.DyeColor;
+import cleanui.feature.ListPage;
 import cleanui.feature.OverviewScreen;
 import cleanui.feature.SkillsScreen;
 import cleanui.feature.StorageScreen;
@@ -49,12 +53,24 @@ public final class Preview {
 			new Shot("skills-row", Preview::fakeSkills, 600, 250),
 			new Shot("storage", Preview::fakeStorage, 380, 282),
 			new Shot("storage-item", Preview::fakeStorage, 548, 229),
+			new Shot("storage-search", mc -> { StorageScreen.searchForPreview("diamond"); return fakeStorage(mc); }, -1, -1),
 			// capture → save → reload from disk: page 3 must show 45 items with the nav row dropped
-			new Shot("capture", Preview::fakeEnderChestPage, -1, -1),
+			new Shot("capture", mc -> { StorageScreen.searchForPreview(""); return fakeEnderChestPage(mc); }, -1, -1),
 			new Shot("storage-reloaded", Preview::storageAfterReload, -1, -1),
 			new Shot("collections", Preview::fakeCollections, -1, -1),
-			new Shot("collections-farming", Preview::fakeFarmingCollections, 330, 230));
+			new Shot("collections-farming", Preview::fakeFarmingCollections, 330, 230),
+			new Shot("track-skill", Preview::fakeSkillTrack, 452, 266),
+			new Shot("track-collection", Preview::fakeCollectionTrack, -1, -1),
+			new Shot("bestiary", Preview::fakeBestiary, -1, -1),
+			new Shot("bestiary-hub", Preview::fakeBestiaryHub, -1, -1),
+			new Shot("pets", Preview::fakePets, -1, -1),
+			new Shot("settings", mc -> new SettingsScreen(fakeSkyBlockMenu(mc)), -1, -1),
+			new Shot("restyled", Preview::fakeWardrobe, -1, -1));
 	private static final int START = 80, EACH = 40;
+	/** -Dcleanui.preview.only=a,b runs just those shots. */
+	private static final List<Shot> RUN = SHOTS.stream()
+			.filter(s -> System.getProperty("cleanui.preview.only", "").isEmpty()
+					|| List.of(System.getProperty("cleanui.preview.only").split(",")).contains(s.name())).toList();
 	private static int ticks;
 
 	private Preview() {}
@@ -74,11 +90,11 @@ public final class Preview {
 		int t = ticks - START;
 		if (t < 0) return;
 		int i = t / EACH, phase = t % EACH;
-		if (i >= SHOTS.size()) {
+		if (i >= RUN.size()) {
 			mc.stop();
 			return;
 		}
-		Shot s = SHOTS.get(i);
+		Shot s = RUN.get(i);
 		if (phase == 0) {
 			CleanScreen.debugMouseX = s.mouseX();
 			CleanScreen.debugMouseY = s.mouseY();
@@ -127,7 +143,7 @@ public final class Preview {
 		put(c, 32, Items.WITHER_SKELETON_SKULL, "Boss Collections", "View your Boss Collections!", "", "3/8");
 		put(c, 48, Items.ARROW, "Go Back");
 		put(c, 49, Items.BARRIER, "Close");
-		return CollectionsScreen.forTitle("Collections", menu(mc, c, "Collections"));
+		return ListPage.forTitle("Collections", menu(mc, c, "Collections"));
 	}
 
 	private static Screen fakeFarmingCollections(Minecraft mc) {
@@ -157,7 +173,103 @@ public final class Preview {
 		}
 		put(c, 48, Items.ARROW, "Go Back");
 		put(c, 53, Items.ARROW, "Next Page");
-		return CollectionsScreen.forTitle("Farming Collections", menu(mc, c, "Farming Collections"));
+		return ListPage.forTitle("Farming Collections", menu(mc, c, "Farming Collections"));
+	}
+
+	private static Item pane(DyeColor color) {
+		return Items.STAINED_GLASS_PANE.pick(color);
+	}
+
+	/** "Farming Skill", second page (levels 26-50): reached up to 31, 32 in progress. */
+	private static Screen fakeSkillTrack(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		put(c, 4, Items.GOLDEN_HOE, "Farming XXXI", "Progress to Level XXXII: 45%", "1,350,000/3M");
+		int[] path = {9, 18, 27, 36, 37, 38, 29, 20, 11, 2, 3, 12, 21, 30, 39, 40, 41, 32, 23, 14, 5, 6, 15, 24, 33};
+		for (int i = 0; i < path.length; i++) {
+			int level = 26 + i;
+			DyeColor color = level <= 31 ? DyeColor.LIME : level == 32 ? DyeColor.YELLOW : DyeColor.RED;
+			put(c, path[i], pane(color), "Farming " + CollectionParser.roman(level), "Rewards:", "  Farmhand " + CollectionParser.roman(level + 1),
+					"    Grants +4☘ Farming Fortune.", "  +5 ❤ Health", "  +" + (level * 10_000) + " Coins", "  +20 SkyBlock XP");
+		}
+		put(c, 45, Items.ARROW, "Previous Page");
+		put(c, 48, Items.ARROW, "Go Back");
+		put(c, 53, Items.ARROW, "Next Page");
+		return CleanUi.pageFor("Farming Skill", menu(mc, c, "Farming Skill"));
+	}
+
+	private static Screen fakeCollectionTrack(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		put(c, 4, Items.WHEAT, "Wheat XI", "Total Collected: 1,234,567", "Progress to Wheat XII: 45.2%", "55,000/100k");
+		for (int tier = 1; tier <= 12; tier++)
+			put(c, 17 + tier, pane(tier <= 11 ? DyeColor.LIME : DyeColor.YELLOW), "Wheat " + CollectionParser.roman(tier),
+					"Wheat " + CollectionParser.roman(tier) + " Rewards:", "  Enchanted Hay Bale Recipe", "  +4 SkyBlock XP");
+		put(c, 48, Items.ARROW, "Go Back");
+		return CleanUi.pageFor("Wheat Collection", menu(mc, c, "Wheat Collection"));
+	}
+
+	private static Screen fakeBestiary(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		String[][] islands = {{"Private Island", "8/12"}, {"The Hub", "14/20"}, {"The Spider's Den", "9/11"}, {"The End", "6/10"},
+				{"Crimson Isle", "11/25"}, {"Deep Caverns", "7/7"}, {"Dwarven Mines", "10/14"}, {"Crystal Hollows", "5/12"},
+				{"The Park", "4/6"}, {"Galatea", "2/9"}, {"Dungeons", "12/18"}, {"Fishing", "20/41"}};
+		for (int i = 0; i < islands.length; i++)
+			put(c, 10 + i + (i / 7) * 2, Items.PLAYER_HEAD, islands[i][0], "View your " + islands[i][0] + " Bestiary!", "", "Families Found: " + islands[i][1]);
+		put(c, 48, Items.ARROW, "Go Back");
+		return CleanUi.pageFor("Bestiary", menu(mc, c, "Bestiary"));
+	}
+
+	private static Screen fakeBestiaryHub(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		Object[][] mobs = {{Items.ROTTEN_FLESH, "Zombie VII", "Kills: 4,102", "Progress to Tier VIII: 61%"},
+				{Items.BONE, "Skeleton V", "Kills: 1,230", "Progress to Tier VI: 22%"},
+				{Items.STRING, "Spider IV", "Kills: 640", "Progress to Tier V: 88%"},
+				{Items.GUNPOWDER, "Creeper III", "Kills: 210", "Progress to Tier IV: 40%"},
+				{Items.SLIME_BALL, "Slime II", "Kills: 75", "Progress to Tier III: 15%"},
+				{Items.FEATHER, "Chicken X", "Kills: 25,000", "Family maxed!"},
+				{Items.LEATHER, "Cow VI", "Kills: 2,000", "Progress to Tier VII: 70%"},
+				{Items.PORKCHOP, "Pig VI", "Kills: 1,800", "Progress to Tier VII: 55%"},
+				{Items.BARRIER, "Crypt Ghoul", "Kill this mob to add it", "to your Bestiary!"}};
+		for (int i = 0; i < mobs.length; i++) {
+			String[] lore = new String[mobs[i].length - 2];
+			for (int j = 2; j < mobs[i].length; j++) lore[j - 2] = (String) mobs[i][j];
+			put(c, 10 + i + (i / 7) * 2, (Item) mobs[i][0], (String) mobs[i][1], lore);
+		}
+		put(c, 48, Items.ARROW, "Go Back");
+		return CleanUi.pageFor("Bestiary ➜ The Hub", menu(mc, c, "Bestiary ➜ The Hub"));
+	}
+
+	private static Screen fakePets(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		Object[][] pets = {{Items.PLAYER_HEAD, "[Lvl 100] Golden Dragon", "MAX LEVEL"},
+				{Items.PLAYER_HEAD, "[Lvl 87] Elephant", "Progress to Level 88: 41.2%"},
+				{Items.PLAYER_HEAD, "[Lvl 100] Ender Dragon", "MAX LEVEL"},
+				{Items.PLAYER_HEAD, "[Lvl 64] Bee", "Progress to Level 65: 12%"},
+				{Items.PLAYER_HEAD, "[Lvl 99] Blue Whale", "Progress to Level 100: 93%"},
+				{Items.PLAYER_HEAD, "[Lvl 45] Rabbit", "Progress to Level 46: 30%"},
+				{Items.PLAYER_HEAD, "[Lvl 100] Griffin", "MAX LEVEL"},
+				{Items.PLAYER_HEAD, "[Lvl 72] Mithril Golem", "Progress to Level 73: 66%"},
+				{Items.PLAYER_HEAD, "[Lvl 30] Sheep", "Progress to Level 31: 8%"},
+				{Items.PLAYER_HEAD, "[Lvl 100] Scatha", "MAX LEVEL"},
+				{Items.BONE, "Pet Score Rewards", "Pet Score: 182", "Magic Find: +3"}};
+		for (int i = 0; i < pets.length; i++)
+			put(c, 10 + i + (i / 7) * 2, (Item) pets[i][0], (String) pets[i][1], (String) pets[i][2]);
+		put(c, 48, Items.ARROW, "Go Back");
+		put(c, 53, Items.ARROW, "Next Page");
+		return CleanUi.pageFor("Pets (1/2)", menu(mc, c, "Pets (1/2)"));
+	}
+
+	/** A menu with its own controls stays a chest screen, only restyled. */
+	private static Screen fakeWardrobe(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		Item[][] sets = {{Items.DIAMOND_HELMET, Items.DIAMOND_CHESTPLATE, Items.DIAMOND_LEGGINGS, Items.DIAMOND_BOOTS},
+				{Items.NETHERITE_HELMET, Items.NETHERITE_CHESTPLATE, Items.NETHERITE_LEGGINGS, Items.NETHERITE_BOOTS},
+				{Items.GOLDEN_HELMET, Items.GOLDEN_CHESTPLATE, Items.GOLDEN_LEGGINGS, Items.GOLDEN_BOOTS}};
+		for (int s = 0; s < sets.length; s++)
+			for (int piece = 0; piece < 4; piece++) c.setItem(piece * 9 + s, new ItemStack(sets[s][piece]));
+		for (int s = 0; s < 9; s++) put(c, 36 + s, pane(s < 3 ? DyeColor.LIME : DyeColor.GRAY), "Slot " + (s + 1), s < 3 ? "Click to equip!" : "Empty");
+		put(c, 48, Items.ARROW, "Go Back");
+		put(c, 49, Items.BARRIER, "Close");
+		return menu(mc, c, "Wardrobe (1/2)");
 	}
 
 	private static Screen fakeCalendar(Minecraft mc) {

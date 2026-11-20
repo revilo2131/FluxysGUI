@@ -53,6 +53,24 @@ class CollectionParserTest {
 	}
 
 	@Test
+	void petLevels() {
+		var e = CollectionParser.parse("[Lvl 87] Golden Dragon", List.of("Legendary", "Progress to Level 88: 41.2%", "1.2M/3.4M"));
+		assertEquals("Golden Dragon", e.name());
+		assertEquals(87, e.tier());
+		assertTrue(e.arabic());
+		assertEquals(0.412f, e.percent(), 1e-4);
+		assertTrue(CollectionParser.parse("[Lvl 100] Ender Dragon", List.of("MAX LEVEL")).maxed());
+	}
+
+	@Test
+	void collectionItemIds() {
+		assertEquals("nether_wart", CollectionItems.idFor("Nether Wart"));
+		assertEquals("melon_slice", CollectionItems.idFor("Melon"));
+		assertEquals("mutton", CollectionItems.idFor("Mutton"));
+		assertEquals("cocoa_beans", CollectionItems.idFor("Cocoa Beans"));
+	}
+
+	@Test
 	void romanRoundTrip() {
 		for (int n = 1; n <= 60; n++) assertEquals(n, SkillParser.level(CollectionParser.roman(n)));
 		assertEquals("XI", CollectionParser.roman(11));

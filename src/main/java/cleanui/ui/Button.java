@@ -74,7 +74,7 @@ public final class Button extends AbstractButton {
 		}
 		g.text(font, getMessage(), tx, ty, Theme.argb(labelColor, a), true);
 
-		if (tooltip != null && isHovered()) g.setTooltipForNextFrame(font, tooltip, mouseX, mouseY, Theme.TOOLTIP_STYLE);
+		if (tooltip != null && isHovered()) g.setTooltipForNextFrame(font, tooltip, mouseX, mouseY, Theme.tooltipStyle());
 	}
 
 	@Override

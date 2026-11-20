@@ -1,6 +1,7 @@
 package cleanui.feature;
 
 import cleanui.CleanUi;
+import cleanui.data.Config;
 import cleanui.skyblock.SkyblockTime;
 import cleanui.ui.Anim;
 import cleanui.ui.Button;
@@ -10,6 +11,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.joml.Matrix3x2fStack;
 
 /**
@@ -94,7 +96,21 @@ public abstract class Window extends CleanScreen {
 		if (depth > 0)
 			addRenderableWidget(new Button(left() + EDGE, top() + 5, 16, 14, Component.literal("‹"), this::goBack)
 					.tooltip(Component.literal("Back to " + crumb())));
+		if (showSettingsButton())
+			addRenderableWidget(new Button(left() + W - EDGE - 16, top() + 5, 16, 14, Component.empty(),
+					() -> minecraft.setScreenAndShow(new SettingsScreen(this)))
+					.item(new ItemStack(Items.COMPARATOR)).tooltip(Component.literal("Clean UI settings")));
 		initBody();
+	}
+
+	protected boolean showSettingsButton() {
+		return true;
+	}
+
+	/** User UI scale, shrunk so the window always fits on screen. */
+	@Override
+	protected float baseScale() {
+		return Math.min(Config.get().uiScale / 100f, Math.min((height - 8f) / H, (width - 8f) / W));
 	}
 
 	@Override
@@ -121,7 +137,7 @@ public abstract class Window extends CleanScreen {
 		g.text(font, title, hx, y + 8, Theme.argb(Theme.TITLE, a), true);
 		SkyblockTime.Date now = SkyblockTime.at(SkyblockTime.now());
 		String clock = now.clock(), date = now.monthName() + " " + SkyblockTime.ordinal(now.day()) + "  ";
-		int cx = x + W - EDGE - font.width(clock);
+		int cx = x + W - EDGE - (showSettingsButton() ? 22 : 0) - font.width(clock);
 		g.text(font, clock, cx, y + 8, Theme.argb(Theme.TEXT, a), true);
 		g.text(font, date, cx - font.width(date), y + 8, Theme.argb(Theme.TEXT_MUTED, a), true);
 		Theme.divider(g, x + 3, y + HEADER, W - 6, a);

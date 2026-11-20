@@ -3,7 +3,10 @@ package cleanui;
 import cleanui.data.StorageCache;
 import cleanui.dev.Preview;
 import cleanui.feature.CalendarScreen;
-import cleanui.feature.CollectionsScreen;
+import cleanui.feature.ListPage;
+import cleanui.feature.TrackScreen;
+import cleanui.data.Config;
+import cleanui.ui.Theme;
 import cleanui.feature.MenuPage;
 import cleanui.feature.OverviewScreen;
 import cleanui.feature.SkillsScreen;
@@ -30,18 +33,29 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public final class CleanUi implements ClientModInitializer {
 	public static final String ID = "cleanui";
 	private static final Logger LOGGER = LoggerFactory.getLogger(ID);
 
-	/** Hypixel menus (by title) that are shown as a Clean UI page instead. */
-	private static final Map<String, Function<AbstractContainerScreen<?>, Screen>> MENU_PAGES = Map.of(
-			OverviewScreen.MENU_TITLE, OverviewScreen::new,
-			SkillsScreen.MENU_TITLE, SkillsScreen::new,
-			StorageParser.MENU_TITLE, StorageScreen::new,
-			CalendarScreen.MENU_TITLE, CalendarScreen::new);
+	/** Hypixel menus (exact title) that are shown as a Clean UI page, each with its on/off setting. */
+	private record Page(Predicate<Config> enabled, Function<AbstractContainerScreen<?>, Screen> open) {}
+
+	private static final Map<String, Page> MENU_PAGES = Map.of(
+			OverviewScreen.MENU_TITLE, new Page(c -> c.skyblockMenu, OverviewScreen::new),
+			SkillsScreen.MENU_TITLE, new Page(c -> c.skills, SkillsScreen::new),
+			StorageParser.MENU_TITLE, new Page(c -> c.storage, StorageScreen::new),
+			CalendarScreen.MENU_TITLE, new Page(c -> c.calendar, CalendarScreen::new));
 	private static final Set<String> SEEN_TITLES = new HashSet<>();
+
+	/** The Clean UI page for a Hypixel menu title (respecting settings), or null to leave it. */
+	public static Screen pageFor(String title, AbstractContainerScreen<?> menu) {
+		Page exact = MENU_PAGES.get(title);
+		if (exact != null) return exact.enabled().test(Config.get()) ? exact.open().apply(menu) : null;
+		Screen track = TrackScreen.forTitle(title, menu);
+		return track != null ? track : ListPage.forTitle(title, menu);
+	}
 
 	@Override
 	public void onInitializeClient() {
@@ -57,6 +71,7 @@ public final class CleanUi implements ClientModInitializer {
 					client.player.sendSystemMessage(Component.literal("[Clean UI] Open the SkyBlock Menu on Hypixel SkyBlock."));
 			}
 		});
+		Theme.applyPreset(Config.get().theme);
 		StorageCache.init();
 		Preview.init(); // dev only; does nothing unless -Dcleanui.preview=true
 
@@ -64,8 +79,7 @@ public final class CleanUi implements ClientModInitializer {
 		ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
 			if (!(screen instanceof AbstractContainerScreen<?> menu) || screen == MenuPage.showingOriginal || !onHypixel()) return;
 			String title = ChatFormatting.stripFormatting(screen.getTitle().getString());
-			var exact = MENU_PAGES.get(title);
-			Screen page = exact != null ? exact.apply(menu) : CollectionsScreen.forTitle(title, menu);
+			Screen page = pageFor(title, menu);
 			if (page != null) client.execute(() -> client.setScreenAndShow(page)); // after init finishes
 			else if (SEEN_TITLES.add(title)) LOGGER.info("[Clean UI] Menu without a Clean UI page: '{}'", title);
 		});

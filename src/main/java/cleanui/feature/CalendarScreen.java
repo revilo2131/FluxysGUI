@@ -122,7 +122,7 @@ public final class CalendarScreen extends MenuPage {
 				lines.add(Component.literal(SkyblockTime.MONTHS[viewMonth] + " " + SkyblockTime.ordinal(day)));
 				if (events.isEmpty()) lines.add(Component.literal("No events").withColor(Theme.TEXT_MUTED));
 				for (Events.Event e : events) lines.add(Component.literal("● " + e.name()).withColor(Theme.color(e.slot())));
-				g.setComponentTooltipForNextFrame(font, lines, mouseX, mouseY, Theme.TOOLTIP_STYLE);
+				g.setComponentTooltipForNextFrame(font, lines, mouseX, mouseY, Theme.tooltipStyle());
 			}
 		}
 	}

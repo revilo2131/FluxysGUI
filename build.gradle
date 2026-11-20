@@ -20,6 +20,7 @@ loom {
 			inherit client
 			configName = "Preview"
 			vmArg "-Dcleanui.preview=true"
+			vmArg "-Dcleanui.preview.only=" + (project.findProperty("only") ?: "") // e.g. gradlew runPreview -Ponly=skills,pets
 			programArgs "--quickPlaySingleplayer", "New World", "--width", "1920", "--height", "1080"
 		}
 	}

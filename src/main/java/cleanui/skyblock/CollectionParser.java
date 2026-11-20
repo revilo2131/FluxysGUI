@@ -16,7 +16,7 @@ public final class CollectionParser {
 	 * {@code amountLabel} is the wording before an "a/b" amount, e.g. "Maxed Out" from
 	 * "Collections Maxed Out: 4/11".
 	 */
-	public record Entry(String name, int tier, Float percent, String done, String total, String amountLabel,
+	public record Entry(String name, int tier, boolean arabic, Float percent, String done, String total, String amountLabel,
 			String collected, boolean maxed) {
 		/** No tier, no progress, nothing collected: not found yet (or not a collection at all). */
 		public boolean locked() {
@@ -25,6 +25,7 @@ public final class CollectionParser {
 	}
 
 	private static final Pattern TIER = Pattern.compile("^(.+?) ([IVXLCDM]+|\\d+)$");
+	private static final Pattern PET = Pattern.compile("^\\[Lvl (\\d+)] (.+)$");
 	private static final Pattern PERCENT = Pattern.compile("([\\d.]+)%");
 	private static final Pattern AMOUNT = Pattern.compile("([\\d,.]+[kKmMbB]?)\\s*/\\s*([\\d,.]+[kKmMbB]?)\\s*$");
 	private static final Pattern COLLECTED = Pattern.compile("Total [Cc]ollected:?\\s*([\\d,.]+[kKmMbB]?)");
@@ -35,10 +36,16 @@ public final class CollectionParser {
 	public static Entry parse(String name, List<String> lore) {
 		String n = name.strip();
 		int tier = -1;
-		Matcher t = TIER.matcher(n);
-		if (t.matches()) {
+		boolean arabic = false;
+		Matcher t = PET.matcher(n);
+		if (t.matches()) { // "[Lvl 100] Golden Dragon"
+			tier = Integer.parseInt(t.group(1));
+			n = t.group(2);
+			arabic = true;
+		} else if ((t = TIER.matcher(n)).matches()) {
 			n = t.group(1);
 			tier = SkillParser.level(t.group(2));
+			arabic = Character.isDigit(t.group(2).charAt(0));
 		}
 		Float percent = null;
 		String done = null, total = null, amountLabel = null, collected = null;
@@ -65,7 +72,7 @@ public final class CollectionParser {
 			if (!hasNumber && MAXED.matcher(line).find()) maxed = true;
 		}
 		if (percent == null && done != null) percent = ratio(done, total);
-		return new Entry(n, tier, percent, done, total, amountLabel, collected, maxed);
+		return new Entry(n, tier, arabic, percent, done, total, amountLabel, collected, maxed);
 	}
 
 	/** 11 → "XI" (tiers are shown the way Hypixel writes them). */

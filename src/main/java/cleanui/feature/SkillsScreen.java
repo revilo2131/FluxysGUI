@@ -258,8 +258,8 @@ public final class SkillsScreen extends MenuPage {
 	}
 
 	@Override
-	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-		if (super.mouseClicked(event, doubleClick)) return true;
+	protected boolean clicked(MouseButtonEvent event, boolean doubleClick) {
+		if (super.clicked(event, doubleClick)) return true;
 		for (Cell c : layout())
 			if (c.contains(event.x(), event.y())) {
 				click(c.entry().menuSlot(), event.button());
