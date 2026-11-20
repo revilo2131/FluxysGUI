@@ -88,6 +88,13 @@ public abstract class MenuPage extends Window {
 		LOGGER.info(sb.toString());
 	}
 
+	/** One click on that menu slot as the player made it: shift-click stays a shift-click. */
+	protected void clickAs(int menuSlot, net.minecraft.client.input.MouseButtonEvent event) {
+		boolean shift = (event.modifiers() & org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT) != 0;
+		minecraft.gameMode.handleContainerInput(original.getMenu().containerId, menuSlot, event.button(),
+				shift ? ContainerInput.QUICK_MOVE : ContainerInput.PICKUP, minecraft.player);
+	}
+
 	/** Exactly one normal click on that menu slot, same as clicking it in the chest. */
 	protected void click(int menuSlot, int button) {
 		minecraft.gameMode.handleContainerInput(original.getMenu().containerId, menuSlot, button, ContainerInput.PICKUP, minecraft.player);

@@ -78,20 +78,27 @@ public final class OverviewScreen extends MenuPage {
 	private Layout layout() {
 		MenuItem hero = null;
 		Map<Integer, List<MenuItem>> rows = new TreeMap<>();
+		List<MenuItem> top = new ArrayList<>();
 		for (MenuItem item : menuItems()) {
 			String name = item.name();
-			// blank names are glass filler; Heart of the Mountain is left out for now
-			if (name.isEmpty() || name.startsWith("Heart of the")) continue;
+			// blank names are glass filler
+			if (name.isEmpty()) continue;
 			if (name.equals(PROFILE) || item.slot() == PROFILE_SLOT) { // by name, or by its spot above the middle
 				hero = item;
 				continue;
 			}
 			int row = item.slot() / COLS;
 			if (row >= 2) rows.computeIfAbsent(row, k -> new ArrayList<>()).add(item);
+			else top.add(item); // e.g. Heart of the Mountain, beside the profile card
 		}
 		Tile heroTile = hero == null ? null
 				: new Tile(hero, gx() + HERO_COL * COL_STEP, by(), HERO_COLS * COL_STEP - 3, HERO_H);
 		List<Tile> tiles = new ArrayList<>();
+		for (MenuItem item : top) { // top rows: same column, centered next to the profile card (never under it)
+			int col = item.slot() % COLS;
+			if (col < HERO_COL || col >= HERO_COL + HERO_COLS)
+				tiles.add(new Tile(item, gx() + col * COL_STEP, by() + (HERO_H - TILE_H) / 2, TILE_W, TILE_H));
+		}
 		int y = by() + HERO_H + 6;
 		for (int r = 2; r < 6; r++) {
 			List<MenuItem> row = rows.get(r);

@@ -28,7 +28,7 @@ import java.util.function.Predicate;
  */
 public final class SettingsScreen extends Window {
 	private static final int SWATCH_W = 36, SWATCH_H = 22, SWATCH_STEP = 40, COL_W = 200, RIGHT_X = 214;
-	private static final int ROW_H = 18, ROW_STEP = 20;
+	private static final int ROW_H = 16, ROW_STEP = 18;
 	private static final int[] SCALES = {80, 90, 100, 110, 120};
 
 	private record Toggle(String label, String tip, Predicate<Config> get, Consumer<Config> flip) {}
@@ -42,6 +42,7 @@ public final class SettingsScreen extends Window {
 			new Toggle("Bestiary", "Bestiary and its pages.", c -> c.bestiary, c -> c.bestiary = !c.bestiary),
 			new Toggle("Pets", "Your pets list.", c -> c.pets, c -> c.pets = !c.pets),
 			new Toggle("Level tracks", "A skill's or collection's tiers and rewards.", c -> c.tracks, c -> c.tracks = !c.tracks),
+			new Toggle("HOTM tree", "Heart of the Mountain and Heart of the Forest.", c -> c.hotm, c -> c.hotm = !c.hotm),
 			new Toggle("Restyle other menus", "Every other Hypixel menu, with its own controls.", c -> c.restyleMenus, c -> c.restyleMenus = !c.restyleMenus));
 
 	private final Screen parent;
@@ -171,9 +172,9 @@ public final class SettingsScreen extends Window {
 			knob.target(on ? 1f : 0f);
 			float k = knob.get();
 			Theme.box(g, rx, ry, rw, ROW_H, over ? Theme.ROW_HOVER : Theme.ROW, a);
-			g.text(font, t.label(), rx + 6, ry + 5, Theme.argb(on ? Theme.TEXT : Theme.TEXT_MUTED, a), true);
+			g.text(font, t.label(), rx + 6, ry + 4, Theme.argb(on ? Theme.TEXT : Theme.TEXT_MUTED, a), true);
 			// switch: track fills with the frame color, knob slides across
-			int sw = 20, sx = rx + rw - sw - 6, sy = ry + 4;
+			int sw = 20, sx = rx + rw - sw - 6, sy = ry + 3;
 			Theme.box(g, sx, sy, sw, 10, Theme.mix(Theme.SLOT, Theme.FRAME_DIM, k), a, Theme.mix(Theme.LINE, Theme.FRAME, k), a);
 			int kx = sx + 1 + Math.round(k * (sw - 10));
 			g.fill(kx, sy + 1, kx + 8, sy + 9, Theme.argb(Theme.mix(Theme.TEXT_MUTED, Theme.TEXT, k), a));

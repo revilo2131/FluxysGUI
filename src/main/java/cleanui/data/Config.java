@@ -33,6 +33,8 @@ public final class Config {
 	public boolean tracks = true;
 	/** Restyle every other Hypixel menu (keeps its own controls). */
 	public boolean restyleMenus = true;
+	/** Heart of the Mountain / Forest tree. */
+	public boolean hotm = true;
 	/** Personal Hypixel API key for networth; stays on this PC, only sent to api.hypixel.net. */
 	public String hypixelApiKey = "";
 

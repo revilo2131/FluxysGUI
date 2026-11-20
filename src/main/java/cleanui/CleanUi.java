@@ -5,6 +5,7 @@ import cleanui.dev.Preview;
 import cleanui.feature.CalendarScreen;
 import cleanui.feature.ListPage;
 import cleanui.feature.TrackScreen;
+import cleanui.feature.TreeScreen;
 import cleanui.data.Config;
 import cleanui.ui.Theme;
 import cleanui.feature.MenuPage;
@@ -52,6 +53,8 @@ public final class CleanUi implements ClientModInitializer {
 	public static Screen pageFor(String title, AbstractContainerScreen<?> menu) {
 		Page exact = MENU_PAGES.get(title);
 		if (exact != null) return exact.enabled().test(Config.get()) ? exact.open().apply(menu) : null;
+		Screen tree = TreeScreen.forTitle(title, menu);
+		if (tree != null) return tree;
 		Screen track = TrackScreen.forTitle(title, menu);
 		return track != null ? track : ListPage.forTitle(title, menu);
 	}

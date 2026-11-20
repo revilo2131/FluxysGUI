@@ -65,7 +65,9 @@ public final class Preview {
 			new Shot("bestiary-hub", Preview::fakeBestiaryHub, -1, -1),
 			new Shot("pets", Preview::fakePets, -1, -1),
 			new Shot("settings", mc -> new SettingsScreen(fakeSkyBlockMenu(mc)), -1, -1),
-			new Shot("restyled", Preview::fakeWardrobe, -1, -1));
+			new Shot("restyled", Preview::fakeWardrobe, -1, -1),
+			new Shot("hotm", Preview::fakeHotm, -1, -1),
+			new Shot("hotm-hover", Preview::fakeHotm, 470, 355));
 	private static final int START = 80, EACH = 40;
 	/** -Dcleanui.preview.only=a,b runs just those shots. */
 	private static final List<Shot> RUN = SHOTS.stream()
@@ -270,6 +272,34 @@ public final class Preview {
 		put(c, 48, Items.ARROW, "Go Back");
 		put(c, 49, Items.BARRIER, "Close");
 		return menu(mc, c, "Wardrobe (1/2)");
+	}
+
+	/** Heart of the Mountain, tiers 7 (top) to 2: tier labels in column 0, perks in a tree, scroll arrows. */
+	private static Screen fakeHotm(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		for (int row = 0; row < 6; row++) put(c, row * 9, Items.GLASS_PANE, "Tier " + (7 - row), "Tier " + (7 - row) + " perks");
+		Object[][] perks = { // slot, item, name, level line
+				{2, Items.COAL, "Mining Madness", "Level 0/1"}, {3, Items.COAL, "Skymall", "Level 0/1"},
+				{4, Items.COAL, "Mining Master", "Level 0/10"}, {5, Items.COAL, "Front Loaded", "Level 0/1"},
+				{6, Items.COAL, "Seasoned Mineman", "Level 0/100"},
+				{12, Items.EMERALD, "Orbiter", "Level 40/80"}, {13, Items.REDSTONE_BLOCK, "Peak of the Mountain", "Level 5/10"},
+				{14, Items.EMERALD, "Lonesome Miner", "Level 22/45"},
+				{20, Items.EMERALD, "Professional", "Level 140/140"}, {21, Items.EMERALD, "Mole", "Level 190/190"},
+				{22, Items.EMERALD, "Fortunate", "Level 20/20"}, {23, Items.EMERALD, "Great Explorer", "Level 12/20"},
+				{24, Items.EMERALD, "Maniac Miner", "Level 1/1"},
+				{31, Items.EMERALD, "Goblin Killer", "Level 1/1"},
+				{38, Items.EMERALD, "Luck of the Cave", "Level 45/45"}, {39, Items.EMERALD, "Daily Powder", "Level 60/100"},
+				{40, Items.EMERALD, "Crystallized", "Level 30/30"}, {41, Items.EMERALD, "Efficient Miner", "Level 100/100"},
+				{42, Items.EMERALD, "Orbiter", "Level 80/80"},
+				{47, Items.EMERALD_BLOCK, "Mining Speed Boost", "Level 1/1"}, {48, Items.EMERALD, "Precision Mining", "Level 1/1"},
+				{49, Items.EMERALD, "Mining Fortune", "Level 34/50"}, {50, Items.EMERALD, "Titanium Insanium", "Level 12/50"},
+				{51, Items.EMERALD_BLOCK, "Pickobulus", "Level 1/1"}};
+		for (Object[] p : perks)
+			put(c, (int) p[0], (Item) p[1], (String) p[2], (String) p[3], "", "Grants a bonus while mining.");
+		put(c, 8, Items.ARROW, "Scroll Up");
+		put(c, 53, Items.ARROW, "Scroll Down");
+		put(c, 17, Items.AMETHYST_CLUSTER, "Heart of the Mountain", "Token of the Mountain: 3", "Mithril Powder: 1.2M");
+		return CleanUi.pageFor("Heart of the Mountain", menu(mc, c, "Heart of the Mountain"));
 	}
 
 	private static Screen fakeCalendar(Minecraft mc) {

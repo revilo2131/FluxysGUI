@@ -1,0 +1,176 @@
+package cleanui.feature;
+
+import cleanui.data.Config;
+import cleanui.skyblock.PerkParser;
+import cleanui.skyblock.PerkParser.State;
+import cleanui.ui.Anim;
+import cleanui.ui.Button;
+import cleanui.ui.Theme;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * Heart of the Mountain / Forest, shown in place of Hypixel's tree menu. Every perk keeps its
+ * spot in the real menu's grid; neighbours are joined by lines (gold along the unlocked path),
+ * the "Tier N" items become row labels, and nodes show their level and state. Clicks (and
+ * shift-clicks, which Hypixel uses for +10 levels) go to the real menu 1:1.
+ */
+public final class TreeScreen extends MenuPage {
+	private static final Pattern TITLE = Pattern.compile("^Heart of the (Mountain|Forest)$");
+	private static final int TOP = 24, LABEL_W = 46, COL_STEP = 46, ROW_STEP = 29, TILE_W = 32, TILE_H = 25;
+	private static final List<String> UP = List.of("Scroll Up", "Previous Page"), DOWN = List.of("Scroll Down", "Next Page");
+
+	private record Node(MenuItem item, PerkParser.Perk perk, int col, int row, int x, int y) {
+		boolean contains(double mx, double my) {
+			return mx >= x && mx < x + TILE_W && my >= y && my < y + TILE_H;
+		}
+	}
+
+	private final Map<Integer, Anim> hover = new HashMap<>();
+	private Button up, down;
+	private int upSlot = -1, downSlot = -1, tokens = -1;
+	private final List<int[]> tierLabels = new ArrayList<>(); // {row, tier}
+
+	private TreeScreen(String title, AbstractContainerScreen<?> original) {
+		super(title, new ItemStack(Items.AMETHYST_CLUSTER), 1, original);
+	}
+
+	public static TreeScreen forTitle(String title, AbstractContainerScreen<?> original) {
+		Matcher m = TITLE.matcher(title);
+		return Config.get().hotm && m.matches() ? new TreeScreen(m.group(1).equals("Mountain") ? "Heart of the Mountain" : "Heart of the Forest", original) : null;
+	}
+
+	@Override
+	protected String hint() {
+		return "Click to level a perk; shift-click for +10.";
+	}
+
+	@Override
+	protected void initBody() {
+		int right = bx() + BW;
+		addRenderableWidget(originalMenuButton(right - 86, by()));
+		down = addRenderableWidget(new Button(right - 86 - 6 - 22, by(), 22, 18, Component.literal("▼"), () -> click(downSlot, 0))
+				.tooltip(Component.literal("Scroll down the tree")).body());
+		up = addRenderableWidget(new Button(right - 86 - 6 - 22 - 4 - 22, by(), 22, 18, Component.literal("▲"), () -> click(upSlot, 0))
+				.tooltip(Component.literal("Scroll up the tree")).body());
+	}
+
+	private int cellX(int col) {
+		return bx() + (col == 0 ? 0 : LABEL_W + (col - 1) * COL_STEP + (COL_STEP - TILE_W) / 2);
+	}
+
+	/** Perks at their menu positions; tier items become labels; scroll arrows become buttons. */
+	private List<Node> nodes() {
+		List<MenuItem> items = menuItems();
+		logMenuOnce(items);
+		List<Node> nodes = new ArrayList<>();
+		tierLabels.clear();
+		upSlot = downSlot = tokens = -1;
+		for (MenuItem item : items) {
+			String name = item.name();
+			if (tokens < 0) tokens = PerkParser.tokens(item.lore());
+			if (UP.stream().anyMatch(name::startsWith)) { upSlot = item.slot(); continue; }
+			if (DOWN.stream().anyMatch(name::startsWith)) { downSlot = item.slot(); continue; }
+			if (name.isEmpty() || NAV.contains(name)) continue;
+			int col = item.slot() % 9, row = item.slot() / 9, tier = PerkParser.tier(name);
+			if (col == 0 && tier >= 0) {
+				tierLabels.add(new int[]{row, tier});
+				continue;
+			}
+			String id = BuiltInRegistries.ITEM.getKey(item.stack().getItem()).toString();
+			nodes.add(new Node(item, PerkParser.perk(id, item.lore()), col, row, cellX(col), by() + TOP + row * ROW_STEP));
+		}
+		return nodes;
+	}
+
+	@Override
+	protected void extractBody(GuiGraphicsExtractor g, int mouseX, int mouseY, float a) {
+		List<Node> nodes = nodes();
+		up.active = upSlot >= 0;
+		down.active = downSlot >= 0;
+		up.visible = down.visible = upSlot >= 0 || downSlot >= 0;
+		if (giveUpIfUnreadable(nodes.isEmpty())) return;
+		int x = bx(), y = by();
+
+		// summary: unlocked / maxed counts and tokens
+		int unlocked = 0, maxed = 0;
+		for (Node n : nodes) if (n.perk().state() != State.LOCKED) { unlocked++; if (n.perk().state() == State.MAXED) maxed++; }
+		String summary = unlocked + " perks unlocked";
+		g.text(font, summary, x, y + 5, Theme.argb(Theme.TITLE, a), true);
+		int bx = x + font.width(summary) + 6;
+		if (maxed > 0) bx += Theme.badge(g, font, maxed + " maxed", bx + font.width(maxed + " maxed") + 5, y + 4, Theme.ACCENT, a) + 4;
+		if (tokens >= 0) Theme.badge(g, font, tokens + " tokens", bx + font.width(tokens + " tokens") + 5, y + 4, Theme.FRAME, a);
+
+		// row labels
+		for (int[] t : tierLabels)
+			Theme.label(g, font, "Tier " + t[1], x, by() + TOP + t[0] * ROW_STEP + (TILE_H - 8) / 2, a);
+
+		// connectors between neighbouring perks, gold where both ends are unlocked
+		Map<Integer, Node> bySlot = new HashMap<>();
+		for (Node n : nodes) bySlot.put(n.item().slot(), n);
+		for (Node n : nodes) {
+			Node right = n.col() < 8 ? bySlot.get(n.item().slot() + 1) : null, below = bySlot.get(n.item().slot() + 9);
+			if (right != null) link(g, n.x() + TILE_W, n.y() + TILE_H / 2, right.x(), n.y() + TILE_H / 2 + 2, n, right, a);
+			if (below != null) link(g, n.x() + TILE_W / 2 - 1, n.y() + TILE_H, n.x() + TILE_W / 2 + 1, below.y(), n, below, a);
+		}
+
+		Node hovered = null;
+		for (Node n : nodes) {
+			boolean over = n.contains(mouseX, mouseY);
+			if (over) hovered = n;
+			extractNode(g, n, over, a);
+		}
+		if (hovered != null) Theme.itemTooltip(g, hovered.item().stack(), mouseX, mouseY); // Hypixel's perk text
+	}
+
+	private static void link(GuiGraphicsExtractor g, int x1, int y1, int x2, int y2, Node a1, Node a2, float a) {
+		boolean lit = a1.perk().state() != State.LOCKED && a2.perk().state() != State.LOCKED;
+		g.fill(x1, y1, x2, y2, Theme.argb(lit ? Theme.ACCENT : Theme.LINE, a));
+	}
+
+	private void extractNode(GuiGraphicsExtractor g, Node n, boolean over, float a) {
+		Anim hv = hover.computeIfAbsent(n.item().slot(), k -> new Anim(0f, 18f));
+		hv.target(over ? 1f : 0f);
+		float h = hv.get();
+		int lift = Math.round(h);
+		int fill, border;
+		switch (n.perk().state()) {
+			case MAXED -> { fill = Theme.mix(Theme.ROW, Theme.ACCENT, 0.22f); border = Theme.ACCENT; }
+			case UNLOCKED -> { fill = Theme.mix(Theme.ROW, Theme.FRAME, 0.12f); border = Theme.FRAME; }
+			default -> { fill = Theme.ROW; border = Theme.LINE; }
+		}
+		int x = n.x(), y = n.y() - lift;
+		Theme.box(g, x, y, TILE_W, TILE_H, Theme.mix(fill, Theme.ROW_HOVER, 0.5f * h), a, Theme.mix(border, Theme.TEXT, 0.5f * h), a);
+		int size = Math.round(16 + 2 * h);
+		Theme.item(g, n.item().stack(), x + (TILE_W - size) / 2, y + (TILE_H - size) / 2 - 2, size, a);
+		if (n.perk().state() == State.LOCKED) g.fill(x + 1, y + 1, x + TILE_W - 1, y + TILE_H - 1, Theme.argb(Theme.PANEL, a * 0.55f));
+		if (n.perk().level() >= 0 && n.perk().state() != State.LOCKED) { // level in the corner, like a stack count
+			String lvl = String.valueOf(n.perk().level());
+			g.text(font, lvl, x + TILE_W - 2 - font.width(lvl), y + TILE_H - 9,
+					Theme.argb(n.perk().state() == State.MAXED ? Theme.ACCENT : Theme.TEXT, a), true);
+		}
+	}
+
+	@Override
+	protected boolean clicked(MouseButtonEvent event, boolean doubleClick) {
+		if (super.clicked(event, doubleClick)) return true;
+		for (Node n : nodes())
+			if (n.contains(event.x(), event.y())) {
+				clickAs(n.item().slot(), event);
+				return true;
+			}
+		return false;
+	}
+}
