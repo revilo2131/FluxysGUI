@@ -10,6 +10,7 @@ import cleanui.ui.Theme;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -21,7 +22,7 @@ import java.util.Map;
 
 /**
  * SkyBlock Leveling, shown in place of Hypixel's menu: a level card with progress to the next
- * level, the "level road" of upcoming reward levels (current, next, milestone), totals, and the
+ * level, the "level road" of upcoming reward levels (current, next, next new colour), totals, and the
  * menu's other buttons on the side. Clicks go to the real menu.
  */
 public final class LevelingScreen extends MenuPage {
@@ -37,7 +38,9 @@ public final class LevelingScreen extends MenuPage {
 		}
 	}
 
-	private record Layout(MenuItem ranking, LevelParser.Summary summary, List<LevelParser.Step> steps, List<Box> boxes) {}
+	/** {@code target}: next level with a new colour (or -1), drawn as the last road tile at targetX. */
+	private record Layout(MenuItem ranking, LevelParser.Summary summary, List<LevelParser.Step> steps, List<Box> boxes,
+			int target, int targetX, int tileW) {}
 
 	private final Map<Integer, Anim> hover = new HashMap<>();
 	private final Anim fill = new Anim(0f, 5f);
@@ -74,14 +77,19 @@ public final class LevelingScreen extends MenuPage {
 			if (s != null) {
 				ranking = item;
 				summary = s;
-			} else if (LevelParser.step(name, item.lore()) != null) levels.add(item);
-			else rest.add(item);
+			} else {
+				LevelParser.Step step = LevelParser.step(name, item.lore());
+				// Hypixel's own "milestone" (e.g. 140) is replaced by the next colour level
+				if (step == null) rest.add(item);
+				else if (step.state() != State.MILESTONE) levels.add(item);
+			}
 		}
 		levels.sort(Comparator.comparingInt(i -> LevelParser.step(i.name(), i.lore()).level()));
 		List<LevelParser.Step> steps = new ArrayList<>();
 		List<Box> boxes = new ArrayList<>();
-		int n = levels.size(), tw = n == 0 ? 0 : (MAIN_W - (n - 1) * 4) / n;
-		for (int i = 0; i < n; i++) {
+		int target = summary != null ? LevelParser.nextColorLevel(summary.level()) : -1;
+		int n = levels.size() + (target > 0 ? 1 : 0), tw = n == 0 ? 0 : (MAIN_W - (n - 1) * 4) / n;
+		for (int i = 0; i < levels.size(); i++) {
 			MenuItem l = levels.get(i);
 			steps.add(LevelParser.step(l.name(), l.lore()));
 			boxes.add(new Box(l, bx() + i * (tw + 4), by() + TILE_Y, tw, TILE_H));
@@ -92,7 +100,7 @@ public final class LevelingScreen extends MenuPage {
 			boxes.add(new Box(r, bx() + SIDE_X, sy, SIDE_W, ROW_H));
 			sy += ROW_STEP;
 		}
-		return new Layout(ranking, summary, steps, boxes);
+		return new Layout(ranking, summary, steps, boxes, target, bx() + levels.size() * (tw + 4), tw);
 	}
 
 	@Override
@@ -100,7 +108,6 @@ public final class LevelingScreen extends MenuPage {
 		Layout l = layout();
 		if (giveUpIfUnreadable(l.summary() == null && l.steps().isEmpty())) return;
 		LevelParser.Step next = l.steps().stream().filter(s -> s.state() == State.NEXT).findFirst().orElse(null);
-		LevelParser.Step milestone = l.steps().stream().filter(s -> s.state() == State.MILESTONE).findFirst().orElse(null);
 		extractCard(g, l, next, mouseX, mouseY, a);
 		Theme.divider(g, font, "LEVEL ROAD", bx(), by() + ROAD_Y, MAIN_W, a);
 		Theme.divider(g, font, "OTHER", bx() + SIDE_X, by(), SIDE_W, a);
@@ -113,8 +120,45 @@ public final class LevelingScreen extends MenuPage {
 			if (i < l.steps().size()) extractTile(g, b, l.steps().get(i), h, a);
 			else extractRow(g, b, h, a);
 		}
-		extractStats(g, l.summary(), milestone, a);
+		if (l.target() > 0) extractColorTile(g, l, mouseX, mouseY, a);
+		extractStats(g, l.summary(), l.target(), a);
 		if (hovered != null) Theme.itemTooltip(g, hovered.item().stack(), mouseX, mouseY);
+	}
+
+	/** "[132]": number in the level's prefix colour, brackets dark gray, like Hypixel's chat. Returns width. */
+	private int levelTag(GuiGraphicsExtractor g, int level, int x, int y, float a) {
+		String num = String.valueOf(level);
+		int bw = font.width("[");
+		g.text(font, "[", x, y, Theme.argb(0x555555, a), true);
+		g.text(font, num, x + bw, y, Theme.argb(LevelParser.color(level), a), true);
+		g.text(font, "]", x + bw + font.width(num), y, Theme.argb(0x555555, a), true);
+		return bw * 2 + font.width(num);
+	}
+
+	private int levelTagWidth(int level) {
+		return font.width("[" + level + "]");
+	}
+
+	/** Last road tile: the next level with a new colour, filled by progress through this colour. */
+	private void extractColorTile(GuiGraphicsExtractor g, Layout l, int mouseX, int mouseY, float a) {
+		int x = l.targetX(), y = by() + TILE_Y, w = l.tileW(), target = l.target(), color = LevelParser.color(target);
+		boolean over = mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + TILE_H;
+		Theme.box(g, x, y, w, TILE_H, over ? Theme.ROW_HOVER : Theme.ROW, a, color, a);
+		levelTag(g, target, x + (w - levelTagWidth(target)) / 2, y + 5, a);
+		String label = Theme.fit(font, "New color", w - 6);
+		g.text(font, label, x + (w - font.width(label)) / 2, y + 17, Theme.argb(Theme.TEXT_MUTED, a), true);
+		// share of this colour's 40 levels done: 132 of 120 → 160 is 30%
+		float p = Math.clamp((l.summary().level() - (target - LevelParser.COLOR_STEP)) / (float) LevelParser.COLOR_STEP, 0f, 1f);
+		g.fill(x + 4, y + TILE_H - 6, x + w - 4, y + TILE_H - 4, Theme.argb(Theme.SLOT, a));
+		g.fill(x + 4, y + TILE_H - 6, x + 4 + Math.round((w - 8) * p), y + TILE_H - 4, Theme.argb(color, a));
+		if (over) {
+			long left = LevelParser.xpLeft(l.summary(), target);
+			g.setComponentTooltipForNextFrame(font, List.of(
+					Component.literal("Level " + target).withColor(color),
+					Component.literal("New prefix color: " + LevelParser.colorName(target)).withColor(color),
+					Component.literal(String.format("%,d XP (%d Levels) left", left, target - l.summary().level())).withColor(Theme.TEXT_MUTED)),
+					mouseX, mouseY, Theme.tooltipStyle());
+		}
 	}
 
 	private float hoverOf(Box b, boolean over) {
@@ -132,7 +176,7 @@ public final class LevelingScreen extends MenuPage {
 		Theme.slot(g, l.ranking() != null ? l.ranking().stack() : new ItemStack(Items.EXPERIENCE_BOTTLE), x + 8, y + 7, 1f, a);
 		int tx = x + 32, right = x + w - 8;
 		int level = l.summary() != null ? l.summary().level() : next != null ? next.level() - 1 : -1;
-		int bw = level >= 0 ? Theme.badge(g, font, String.valueOf(level), right, y + 6, Theme.ACCENT, a) : 0;
+		int bw = level >= 0 ? levelTag(g, level, right - levelTagWidth(level), y + 7, a) : 0;
 		g.text(font, "SkyBlock Level", tx, y + 7, Theme.argb(Theme.TITLE, a), true);
 		Theme.leader(g, tx + font.width("SkyBlock Level") + 3, right - bw - 3, y + 13, a);
 		fill.target(next != null && next.percent() != null ? next.percent() : 0f);
@@ -157,10 +201,7 @@ public final class LevelingScreen extends MenuPage {
 		int x = b.x(), y = b.y(), w = b.w();
 		Theme.box(g, x, y, w, b.h(), Theme.mix(Theme.ROW, Theme.ROW_HOVER, h), a,
 				dim ? Theme.mix(Theme.LINE, Theme.FRAME, 0.8f * h) : Theme.mix(color, Theme.TEXT, 0.3f * h), a);
-		String num = String.valueOf(s.level());
-		int numColor = dim ? Theme.TEXT_MUTED : s.state() == State.MILESTONE ? MILESTONE : Theme.TITLE;
-		g.text(font, num, x + (w - font.width(num)) / 2, y + 5, Theme.argb(numColor, a), true);
-		if (s.state() == State.MILESTONE) g.text(font, "★", x + w - 9, y + 3, Theme.argb(MILESTONE, a), true);
+		levelTag(g, s.level(), x + (w - levelTagWidth(s.level())) / 2, y + 5, dim ? a * 0.6f : a);
 		if (!s.rewards().isEmpty()) {
 			String r = Theme.fit(font, shortReward(s.rewards().getFirst()) + (s.rewards().size() > 1 ? " +" + (s.rewards().size() - 1) : ""), w - 6);
 			g.text(font, r, x + (w - font.width(r)) / 2, y + 17, Theme.argb(Theme.TEXT_MUTED, a), true);
@@ -181,8 +222,8 @@ public final class LevelingScreen extends MenuPage {
 				.replace("Intelligence", "Int").replace("Magic Find", "MF");
 	}
 
-	/** Total XP, share of all SkyBlock XP tasks done, and the next milestone. */
-	private void extractStats(GuiGraphicsExtractor g, LevelParser.Summary s, LevelParser.Step milestone, float a) {
+	/** Total XP, share of all SkyBlock XP tasks done, and the next colour level. */
+	private void extractStats(GuiGraphicsExtractor g, LevelParser.Summary s, int target, float a) {
 		int x = bx(), y = by() + STATS_Y;
 		Theme.divider(g, font, "PROGRESS", x, y, MAIN_W, a);
 		int line = y + 13;
@@ -196,9 +237,15 @@ public final class LevelingScreen extends MenuPage {
 			g.fill(x, line + 10, x + Math.round(MAIN_W * s.tasks()), line + 12, Theme.argb(Theme.color(GREEN), a));
 			line += 17;
 		}
-		if (milestone != null)
-			Theme.textLeader(g, font, "Next milestone: Level " + milestone.level(), Theme.TEXT, milestone.left() != null ? milestone.left() + " left" : "",
-					MILESTONE, x, line, MAIN_W, a);
+		if (s != null && target > 0) {
+			String label = "Next milestone: ", lvl = "Level " + target;
+			String left = String.format("%,d XP (%d Levels) left", LevelParser.xpLeft(s, target), target - s.level());
+			int lx = x + font.width(label), color = LevelParser.color(target);
+			g.text(font, label, x, line, Theme.argb(Theme.TEXT, a), true);
+			g.text(font, lvl, lx, line, Theme.argb(color, a), true);
+			Theme.leader(g, lx + font.width(lvl) + 3, x + MAIN_W - font.width(left) - 3, line + 6, a);
+			g.text(font, left, x + MAIN_W - font.width(left), line, Theme.argb(color, a), true);
+		}
 	}
 
 	/** Side button: stripe, item, name ···· x/y or ON/OFF, bar if it has progress. */

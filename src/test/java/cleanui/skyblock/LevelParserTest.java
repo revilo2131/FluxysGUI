@@ -20,6 +20,19 @@ class LevelParserTest {
 	}
 
 	@Test
+	void colors() {
+		assertEquals(0xAAAAAA, LevelParser.color(39));
+		assertEquals(0xFFFFFF, LevelParser.color(40));
+		assertEquals(0x55FF55, LevelParser.color(132));
+		assertEquals("Dark Green", LevelParser.colorName(160));
+		assertEquals(0xAA0000, LevelParser.color(600));
+		assertEquals(160, LevelParser.nextColorLevel(132));
+		assertEquals(160, LevelParser.nextColorLevel(120));
+		assertEquals(-1, LevelParser.nextColorLevel(480));
+		assertEquals(2767, LevelParser.xpLeft(new LevelParser.Summary(132, "13,233", null), 160));
+	}
+
+	@Test
 	void steps() {
 		var cur = LevelParser.step("Level 132", List.of("Your Level", "", "Reward:", " +5 Health", "", "UNLOCKED", "", "Click to view rewards!"));
 		assertEquals(State.CURRENT, cur.state());

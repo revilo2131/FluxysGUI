@@ -22,7 +22,34 @@ public final class LevelParser {
 	private static final Pattern XP = Pattern.compile("([\\d,.]+[kKmM]?)\\s*/\\s*([\\d,.]+[kKmM]?) XP");
 	private static final Pattern LEFT = Pattern.compile("XP Left to Gain: (.+)$");
 
+	/** Prefix colour per 40 levels (wiki "SkyBlock Levels" → Prefix Color), Minecraft colour codes. */
+	private static final int[] COLORS = {0xAAAAAA, 0xFFFFFF, 0xFFFF55, 0x55FF55, 0x00AA00, 0x55FFFF, 0x00AAAA,
+			0x5555FF, 0xFF55FF, 0xAA00AA, 0xFFAA00, 0xFF5555, 0xAA0000};
+	private static final String[] COLOR_NAMES = {"Gray", "White", "Yellow", "Green", "Dark Green", "Aqua", "Cyan",
+			"Blue", "Pink", "Purple", "Gold", "Red", "Dark Red"};
+	public static final int COLOR_STEP = 40;
+
 	private LevelParser() {}
+
+	/** The [level] colour Hypixel shows in chat and tab. */
+	public static int color(int level) {
+		return COLORS[Math.clamp(level / COLOR_STEP, 0, COLORS.length - 1)];
+	}
+
+	public static String colorName(int level) {
+		return COLOR_NAMES[Math.clamp(level / COLOR_STEP, 0, COLOR_NAMES.length - 1)];
+	}
+
+	/** The next level that unlocks a new colour (132 → 160), or -1 past the last one. */
+	public static int nextColorLevel(int level) {
+		int next = (level / COLOR_STEP + 1) * COLOR_STEP;
+		return next / COLOR_STEP < COLORS.length ? next : -1;
+	}
+
+	/** XP still needed to reach {@code target}; every SkyBlock level is 100 XP. */
+	public static long xpLeft(Summary s, int target) {
+		return Math.max(0, target * 100L - PerkParser.amount(s.xp()));
+	}
 
 	/** Null unless the lore has "Your level: N". */
 	public static Summary summary(List<String> lore) {
