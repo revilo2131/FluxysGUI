@@ -332,7 +332,7 @@ public final class Preview {
 	private static Screen fakeHotmReset(Minecraft mc) {
 		SimpleContainer c = new SimpleContainer(27);
 		put(c, 13, Items.TNT, "Reset Heart of the Mountain", "Resets every perk and refunds", "your Mithril, Gemstone and Glacite", "Powder.", "",
-				"Your tokens are refunded too.", "", "Cost: 1,000,000 Coins");
+				"Your tokens are refunded too.");
 		put(c, 11, pane(DyeColor.LIME), "Confirm", "Click to reset your tree!");
 		put(c, 15, pane(DyeColor.RED), "Cancel", "Go back without resetting.");
 		ChestMenu menu = ChestMenu.threeRows(4, mc.player.getInventory(), c);
