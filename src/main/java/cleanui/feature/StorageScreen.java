@@ -194,7 +194,7 @@ public final class StorageScreen extends MenuPage {
 		boolean inList = mouseX >= x && mouseX < x + LIST_W && mouseY >= y && mouseY < y + LIST_H;
 		String q = query();
 		if (rows.isEmpty() && !q.isEmpty()) {
-			String[] lines = {"No matches in the pages", "Clean UI has seen."};
+			String[] lines = {"No matches in the pages", "FluxysGUI has seen."};
 			for (int i = 0; i < lines.length; i++) Theme.label(g, font, lines[i], x + 4, y + 8 + i * 11, a);
 		}
 
@@ -237,7 +237,7 @@ public final class StorageScreen extends MenuPage {
 
 		int gx = px + (PANEL_W - COLS * SLOT) / 2, gy = y + 28;
 		if (page == null) {
-			String[] lines = {"Open this page once and", "Clean UI will remember it."};
+			String[] lines = {"Open this page once and", "FluxysGUI will remember it."};
 			for (int i = 0; i < lines.length; i++)
 				g.text(font, lines[i], px + (PANEL_W - font.width(lines[i])) / 2, gy + 30 + i * 11, Theme.argb(Theme.TEXT_MUTED, a), true);
 			return;

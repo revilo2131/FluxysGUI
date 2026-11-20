@@ -99,7 +99,7 @@ public abstract class Window extends CleanScreen {
 		if (showSettingsButton())
 			addRenderableWidget(new Button(left() + W - EDGE - 16, top() + 5, 16, 14, Component.empty(),
 					() -> minecraft.setScreenAndShow(new SettingsScreen(this)))
-					.item(new ItemStack(Items.COMPARATOR)).tooltip(Component.literal("Clean UI settings")));
+					.item(new ItemStack(Items.COMPARATOR)).tooltip(Component.literal("FluxysGUI settings")));
 		initBody();
 	}
 

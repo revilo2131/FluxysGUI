@@ -67,7 +67,7 @@ public final class CleanUi implements ClientModInitializer {
 				// same as clicking the SkyBlock Menu star: one /sbmenu, shown as the Clean UI overview
 				if (onHypixel()) client.getConnection().sendCommand("sbmenu");
 				else if (client.player != null)
-					client.player.sendSystemMessage(Component.literal("[Clean UI] Open the SkyBlock Menu on Hypixel SkyBlock."));
+					client.player.sendSystemMessage(Component.literal("[FluxysGUI] Open the SkyBlock Menu on Hypixel SkyBlock."));
 			}
 		});
 		Theme.applyPreset(Config.get().theme);

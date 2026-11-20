@@ -29,6 +29,7 @@ public final class OverviewScreen extends MenuPage {
 	public static final String MENU_TITLE = "SkyBlock Menu";
 
 	private static final String PROFILE = "Your SkyBlock Profile";
+	private static final int PROFILE_SLOT = 13;
 	private static final int COLS = 9, COL_STEP = 47, TILE_W = 44, TILE_H = 36, ROW_STEP = 39, EMPTY_ROW = 6;
 	private static final int GRID_W = COLS * COL_STEP - 3;
 	private static final int HERO_COL = 2, HERO_COLS = 5, HERO_H = 70;
@@ -77,7 +78,7 @@ public final class OverviewScreen extends MenuPage {
 			String name = item.name();
 			// blank names are glass filler; Heart of the Mountain is left out for now
 			if (name.isEmpty() || name.startsWith("Heart of the")) continue;
-			if (name.equals(PROFILE)) {
+			if (name.equals(PROFILE) || item.slot() == PROFILE_SLOT) { // by name, or by its spot above the middle
 				hero = item;
 				continue;
 			}

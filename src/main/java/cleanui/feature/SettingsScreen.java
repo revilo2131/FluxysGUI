@@ -122,7 +122,7 @@ public final class SettingsScreen extends Window {
 
 		// about: what this mod does and doesn't do
 		Theme.divider(g, font, "ABOUT", x, y + 104, COL_W, a);
-		String[] about = {"Clean UI only changes how menus look.", "Every click is passed on 1:1; nothing", "is automated or sent on its own."};
+		String[] about = {"FluxysGUI only changes how menus look.", "Every click is passed on 1:1; nothing", "is automated or sent on its own."};
 		for (int i = 0; i < about.length; i++) Theme.label(g, font, about[i], x, y + 118 + i * 11, a);
 
 		// page toggles

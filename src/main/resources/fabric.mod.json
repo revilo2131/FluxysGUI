@@ -2,7 +2,7 @@
 	"schemaVersion": 1,
 	"id": "cleanui",
 	"version": "${version}",
-	"name": "Clean UI for Hypixel SkyBlock",
+	"name": "FluxysGUI",
 	"description": "Client-side UI improvements for Hypixel SkyBlock. Visual only: no automation.",
 	"authors": [],
 	"license": "All-Rights-Reserved",
