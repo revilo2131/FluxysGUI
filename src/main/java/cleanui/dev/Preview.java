@@ -72,6 +72,7 @@ public final class Preview {
 			new Shot("hotm-hover", Preview::fakeHotm, 470, 355),
 			new Shot("dungeons", Preview::fakeDungeons, -1, -1),
 			new Shot("leveling", Preview::fakeLeveling, -1, -1),
+			new Shot("leveling-tile", Preview::fakeLeveling, 340, 262),
 			new Shot("hotm-reset", Preview::fakeHotmReset, -1, -1),
 			new Shot("hotm-swap", Preview::fakeHotmSwap, -1, -1));
 	private static final int START = 80, EACH = 40;
@@ -313,36 +314,46 @@ public final class Preview {
 		return CleanUi.pageFor("Heart of the Mountain", menu(mc, c, "Heart of the Mountain"));
 	}
 
+	/** Real Dungeoneering layout (game log, 2026-11-21). */
 	private static Screen fakeDungeons(Minecraft mc) {
 		SimpleContainer c = new SimpleContainer(54);
-		put(c, 4, Items.WITHER_SKELETON_SKULL, "Catacombs", "Catacombs Level: 24", "Progress to Level 25: 45%", "1,240,000/3M");
-		Object[][] classes = {{Items.POTION, "Healer", "24", "38"}, {Items.BLAZE_ROD, "Mage", "31", "72"},
-				{Items.IRON_SWORD, "Berserk", "18", "5"}, {Items.BOW, "Archer", "27", "61"}, {Items.LEATHER_CHESTPLATE, "Tank", "15", "90"}};
+		put(c, 12, Items.WITHER_SKELETON_SKULL, "The Catacombs 21", "Complete this dungeon to", "demonstrate your mastery.", "",
+				"Progress to Mastery 22: 21.8%", "                          15,589.1/71.5k", "", "Click to view!");
+		put(c, 13, pane(DyeColor.GRAY), "Not Coming Soon");
+		put(c, 14, pane(DyeColor.GRAY), "Not Coming Soon");
+		Object[][] classes = {{Items.POTION, "Healer 14", "15: 82.4%", "6,077.7/7.4k"}, {Items.BLAZE_ROD, "Mage 16", "17: 86%", "12,385.5/14.4k"},
+				{Items.IRON_SWORD, "Berserk 17", "18: 49%", "9,806.4/20k"}, {Items.BOW, "Archer 20", "21: 40.3%", "21,155.2/52.5k"},
+				{Items.LEATHER_CHESTPLATE, "Tank 10", "11: 25.8%", "487.3/1.9k"}};
 		for (int i = 0; i < classes.length; i++) {
 			Object[] k = classes[i];
-			put(c, 20 + i, (Item) k[0], (String) k[1], k[1] + " Level " + k[2], "Progress to Level " + (Integer.parseInt((String) k[2]) + 1) + ": " + k[3] + "%",
-					i == 1 ? "SELECTED" : "Click to select!");
+			put(c, 29 + i, (Item) k[0], (String) k[1], "Progress to Level " + k[2], "                          " + k[3], "",
+					i == 1 ? "SELECTED" : "Click to view!");
 		}
-		put(c, 30, Items.WRITTEN_BOOK, "Dungeon Journals", "Journals found: 12/30");
-		put(c, 31, Items.NETHER_STAR, "Essence", "View your Dungeon Essence.");
-		put(c, 32, Items.ENDER_EYE, "Boss Collections", "Collections Unlocked: 5/7");
-		put(c, 48, Items.ARROW, "Go Back");
+		put(c, 48, Items.ARROW, "Go Back", "To Your Skills");
+		put(c, 50, Items.AMETHYST_SHARD, "Your Essence", "Collect Essence in Dungeons which", "can be used to upgrade gear.", "", "Click to view!");
 		return CleanUi.pageFor("Dungeoneering", menu(mc, c, "Dungeoneering"));
 	}
 
-	/** Guessed SkyBlock Leveling layout (real one not logged yet): level, task categories, extras. */
+	/** Real SkyBlock Leveling layout (game log, 2026-11-21). */
 	private static Screen fakeLeveling(Minecraft mc) {
 		SimpleContainer c = new SimpleContainer(54);
-		put(c, 13, Items.PLAYER_HEAD, "SkyBlock Level", "Your SkyBlock Level: [312]", "", "Progress to Level 313: 45%", "45/100 XP");
-		Object[][] tasks = {{Items.NETHER_STAR, "Core Tasks", "62"}, {Items.CAKE, "Event Tasks", "38"}, {Items.WITHER_SKELETON_SKULL, "Dungeon Tasks", "71"},
-				{Items.DRAGON_BREATH, "Essence Shop Tasks", "44"}, {Items.GOLDEN_SWORD, "Slaying Tasks", "55"}, {Items.DIAMOND_PICKAXE, "Skill Related Tasks", "80"},
-				{Items.BOOK, "Miscellaneous Tasks", "23"}, {Items.MAP, "Story Tasks", "100"}};
-		for (int i = 0; i < tasks.length; i++)
-			put(c, 28 + i + (i / 4), (Item) tasks[i][0], (String) tasks[i][1], "Progress to complete category: " + tasks[i][2] + "%", "", "Click to view tasks!");
-		put(c, 39, Items.CHEST, "Leveling Rewards", "Rewards unlocked: 31/40");
-		put(c, 40, Items.NAME_TAG, "Prefix Colors", "Unlock new name colors.");
-		put(c, 41, Items.ITEM_FRAME, "Emblems", "Emblems unlocked: 9/30");
-		put(c, 48, Items.ARROW, "Go Back");
+		put(c, 4, Items.PAINTING, "Your SkyBlock Level Ranking", "Classic Mode", "", "Your level: 132", "You have: 13,233 XP", "",
+				"You have completed 22.8% of the", "total SkyBlock XP Tasks.");
+		put(c, 16, Items.REDSTONE_TORCH, "Ways to Level Up", "Learn more about the different ways", "to earn SkyBlock XP.", "", "Click to view!");
+		put(c, 19, pane(DyeColor.LIME), "Level 132", "Your Level", "", "Reward:", " +5 Health", "", "UNLOCKED", "", "Click to view rewards!");
+		put(c, 20, pane(DyeColor.YELLOW), "Level 133", "Next Level", "", "Reward:", " +5 Health", "", "Progress to Level Up:",
+				"                          33/100 XP", "", "Click to view rewards!");
+		put(c, 21, pane(DyeColor.RED), "Level 134", "Reward:", " +5 Health", "", "Click to view rewards!");
+		put(c, 22, pane(DyeColor.RED), "Level 135", "Rewards:", " +1 Strength", " +5 Health", "", "Click to view rewards!");
+		put(c, 23, pane(DyeColor.RED), "Level 136", "Reward:", " +5 Health", "", "Click to view rewards!");
+		put(c, 25, Items.MAP, "⚑ SkyBlock XP Guide", "Your SkyBlock XP Guide tracks the", "progress you have made.", "", "Click to view!");
+		put(c, 30, pane(DyeColor.ORANGE), "Level 140", "Next Milestone Level", "", "Rewards:", " Soulflow Emblem ⸎", " +1 Strength", " +5 Health", "",
+				"XP Left to Gain: 767 XP (8 Levels)", "", "Click to view rewards!");
+		put(c, 34, Items.CHEST, "Leveling Rewards", "View all the rewards you can unlock.", "", "Progress to Max: 52.9%", "                          27/51", "",
+				"Click to view rewards!");
+		put(c, 43, Items.NAME_TAG, "Prefix Emblems", "Add some spice by having an emblem", "next to your name.", "", "Click to view!");
+		put(c, 48, Items.ARROW, "Go Back", "To SkyBlock Menu");
+		put(c, 50, Items.OAK_SIGN, "SkyBlock Levels in Chat", "View other players' SkyBlock Level.", "", "ENABLED", "", "Click to disable!");
 		return CleanUi.pageFor("SkyBlock Leveling", menu(mc, c, "SkyBlock Leveling"));
 	}
 

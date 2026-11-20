@@ -27,8 +27,7 @@ public final class CollectionParser {
 	private static final Pattern TIER = Pattern.compile("^(.+?) ([IVXLCDM]+|\\d+)$");
 	private static final Pattern PET = Pattern.compile("^\\[Lvl (\\d+)] (.+)$");
 	/** "Healer Level 24" or "Catacombs Level: XXIV" in the lore, for items without a tier in their name. */
-	private static final Pattern LORE_LEVEL = Pattern.compile("(?:^|\\s)Level:?\\s+\\[?([IVXLCDM]+|\\d+)]?\\s*$");
-	private static final Pattern NEXT_LEVEL = Pattern.compile("Progress to Level (\\d+)");
+	private static final Pattern LORE_LEVEL = Pattern.compile("(?:^|\\s)Level:?\\s+([IVXLCDM]+|\\d+)\\s*$");
 	private static final Pattern PERCENT = Pattern.compile("([\\d.]+)%");
 	private static final Pattern AMOUNT = Pattern.compile("([\\d,.]+[kKmMbB]?)\\s*/\\s*([\\d,.]+[kKmMbB]?)\\s*$");
 	private static final Pattern COLLECTED = Pattern.compile("Total [Cc]ollected:?\\s*([\\d,.]+[kKmMbB]?)");
@@ -80,15 +79,6 @@ public final class CollectionParser {
 		}
 		if (percent == null && done != null) percent = ratio(done, total);
 		return new Entry(n, tier, arabic, percent, done, total, amountLabel, collected, maxed);
-	}
-
-	/** "Progress to Level 313" → 312, for a level shown only as the next one; else -1. */
-	public static int levelFromProgress(List<String> lore) {
-		for (String line : lore) {
-			Matcher m = NEXT_LEVEL.matcher(line);
-			if (m.find()) return Integer.parseInt(m.group(1)) - 1;
-		}
-		return -1;
 	}
 
 	/** 11 → "XI" (tiers are shown the way Hypixel writes them). */
