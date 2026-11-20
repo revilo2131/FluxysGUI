@@ -31,6 +31,9 @@ import java.util.regex.Pattern;
  */
 public final class TreeScreen extends MenuPage {
 	private static final Pattern TITLE = Pattern.compile("^Heart of the (Mountain|Forest)$");
+	private static final int TIERS = 10;
+	/** Maxed perks: yellow. */
+	private static final int MAXED = 0xFFE04A;
 	private static final int TOP = 24, LABEL_W = 46, COL_STEP = 38, ROW_STEP = 29, TILE_W = 32, TILE_H = 25;
 	private static final List<String> UP = List.of("Scroll Up", "Previous Page"), DOWN = List.of("Scroll Down", "Next Page");
 
@@ -47,7 +50,6 @@ public final class TreeScreen extends MenuPage {
 	private final Map<String, Long> powder = new HashMap<>();
 	private final Map<String, Anim> powderShown = new HashMap<>();
 	private final List<int[]> tierLabels = new ArrayList<>(); // {row, tier, fill 0..1000}
-	private final Anim xpBar = new Anim(0f, 5f); // grows in from the bottom on open
 
 	private TreeScreen(String title, AbstractContainerScreen<?> original) {
 		super(title, new ItemStack(Items.AMETHYST_CLUSTER), 1, original);
@@ -120,7 +122,7 @@ public final class TreeScreen extends MenuPage {
 		String summary = unlocked + " perks unlocked";
 		g.text(font, summary, x, y + 5, Theme.argb(Theme.TITLE, a), true);
 		int bx = x + font.width(summary) + 6;
-		if (maxed > 0) bx += Theme.badge(g, font, maxed + " maxed", bx + font.width(maxed + " maxed") + 5, y + 4, Theme.ACCENT, a) + 4;
+		if (maxed > 0) bx += Theme.badge(g, font, maxed + " maxed", bx + font.width(maxed + " maxed") + 5, y + 4, MAXED, a) + 4;
 		if (tokens >= 0) Theme.badge(g, font, tokens + " tokens", bx + font.width(tokens + " tokens") + 5, y + 4, Theme.FRAME, a);
 
 		// row labels
@@ -197,23 +199,33 @@ public final class TreeScreen extends MenuPage {
 	}
 
 	/**
-	 * HOTM XP: a green bar along the tier labels, filled from the bottom row up. Each row adds
-	 * its tier's fill, so finished tiers are full and the current one is partly filled.
+	 * Total progress through all {@link #TIERS} tiers (0..1), remembered across scrolling and
+	 * reopening, so the bar stays put. Updated only when the visible tiers pin it down.
 	 */
-	private void extractXpBar(GuiGraphicsExtractor g, int x, float a) {
-		if (tierLabels.isEmpty()) return;
-		int topRow = Integer.MAX_VALUE, bottomRow = -1;
-		float filled = 0;
+	private static float totalProgress = -1;
+
+	private void updateTotalProgress() {
+		float best = -1;
+		int highestDone = 0;
+		boolean anyLocked = false;
 		for (int[] t : tierLabels) {
-			topRow = Math.min(topRow, t[0]);
-			bottomRow = Math.max(bottomRow, t[0]);
-			filled += t[2] / 1000f * ROW_STEP;
+			if (t[2] >= 1000) highestDone = Math.max(highestDone, t[1]);
+			else if (t[2] > 0) best = (t[1] - 1 + t[2] / 1000f) / TIERS; // the tier in progress says it exactly
+			else anyLocked = true;
 		}
-		int top = by() + TOP + topRow * ROW_STEP, bottom = by() + TOP + bottomRow * ROW_STEP + TILE_H;
-		xpBar.target(Math.min(filled, bottom - top));
-		int fillTop = bottom - Math.round(xpBar.get());
+		if (best >= 0) totalProgress = best;
+		else if (highestDone > 0 && anyLocked) totalProgress = highestDone / (float) TIERS; // done right up to a locked tier
+		else if (highestDone > 0) totalProgress = Math.max(totalProgress, highestDone / (float) TIERS); // at least this far
+	}
+
+	/** HOTM XP: one fixed green bar down the tier column for total progress; scrolling doesn't move it. */
+	private void extractXpBar(GuiGraphicsExtractor g, int x, float a) {
+		updateTotalProgress();
+		int top = by() + TOP, bottom = by() + TOP + 5 * ROW_STEP + TILE_H;
 		Theme.box(g, x, top, 5, bottom - top, Theme.SLOT, a);
-		if (fillTop < bottom - 1) g.fill(x + 1, Math.max(top + 1, fillTop), x + 4, bottom - 1, Theme.argb(Theme.color(5), a));
+		if (totalProgress <= 0) return;
+		int fillTop = bottom - 1 - Math.round((bottom - top - 2) * Math.min(1f, totalProgress));
+		g.fill(x + 1, fillTop, x + 4, bottom - 1, Theme.argb(Theme.color(5), a));
 	}
 
 	private static void link(GuiGraphicsExtractor g, int x1, int y1, int x2, int y2, Node a1, Node a2, float a) {
@@ -228,7 +240,7 @@ public final class TreeScreen extends MenuPage {
 		int lift = Math.round(h);
 		int fill, border;
 		switch (n.perk().state()) {
-			case MAXED -> { fill = Theme.mix(Theme.ROW, Theme.ACCENT, 0.22f); border = Theme.ACCENT; }
+			case MAXED -> { fill = Theme.mix(Theme.ROW, MAXED, 0.22f); border = MAXED; }
 			case UNLOCKED -> { fill = Theme.mix(Theme.ROW, Theme.FRAME, 0.12f); border = Theme.FRAME; }
 			default -> { fill = Theme.ROW; border = Theme.LINE; }
 		}
@@ -240,7 +252,7 @@ public final class TreeScreen extends MenuPage {
 		if (n.perk().level() >= 0 && n.perk().state() != State.LOCKED) { // level in the corner, like a stack count
 			String lvl = String.valueOf(n.perk().level());
 			g.text(font, lvl, x + TILE_W - 2 - font.width(lvl), y + TILE_H - 9,
-					Theme.argb(n.perk().state() == State.MAXED ? Theme.ACCENT : Theme.TEXT, a), true);
+					Theme.argb(n.perk().state() == State.MAXED ? MAXED : Theme.TEXT, a), true);
 		}
 	}
 
