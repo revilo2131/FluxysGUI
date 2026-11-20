@@ -31,15 +31,16 @@ public final class Events {
 	}
 
 	public static final List<Event> ALL = List.of(
+			// slot = color index: 0 purple, 1 blue, 2 pink, 3 red, 4 orange, 5 green, 6 teal
 			new Event("Hoppity's Hunt", 2, new Yearly(0, 1, 2, 31)),
-			new Event("Traveling Zoo", 1, new Yearly(3, 1, 3, 3)),
-			new Event("Traveling Zoo", 1, new Yearly(9, 1, 9, 3)),
-			new Event("Mayor Election", 0, new Yearly(5, 27, 2, 27)),
-			new Event("Spooky Festival", 2, new Yearly(7, 29, 7, 31)),
+			new Event("Traveling Zoo", 6, new Yearly(3, 1, 3, 3)),
+			new Event("Traveling Zoo", 6, new Yearly(9, 1, 9, 3)),
+			new Event("Mayor Election", 1, new Yearly(5, 27, 2, 27)),
+			new Event("Spooky Festival", 4, new Yearly(7, 29, 7, 31)),
 			new Event("Season of Jerry", 1, new Yearly(11, 24, 11, 26)),
-			new Event("New Year Celebration", 0, new Yearly(11, 29, 11, 31)),
+			new Event("New Year Celebration", 3, new Yearly(11, 29, 11, 31)),
 			new Event("Dark Auction", 0, new EveryThreeDays(0, 0)), // starts XX:55 real time
-			new Event("Jacob's Contest", 1, new EveryThreeDays(1, DAY)) // XX:15 to XX:35 real time
+			new Event("Jacob's Contest", 5, new EveryThreeDays(1, DAY)) // XX:15 to XX:35 real time
 	);
 
 	private Events() {}

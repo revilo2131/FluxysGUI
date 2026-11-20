@@ -84,24 +84,23 @@ public final class CalendarScreen extends CleanScreen {
 		Theme.panel(g, px, py, W, H, a);
 
 		// header
-		g.text(font, title, x, py + Theme.PAD, Theme.argb(Theme.TEXT, a), false);
-		Theme.paletteBar(g, x, py + Theme.PAD + 11, 10, a);
+		Theme.title(g, font, title.getString(), x, py + Theme.PAD, a);
 		String clock = today.clock();
-		g.text(font, clock, px + W - Theme.PAD - font.width(clock), py + Theme.PAD, Theme.argb(Theme.TEXT, a), false);
+		g.text(font, clock, px + W - Theme.PAD - font.width(clock), py + Theme.PAD, Theme.argb(Theme.TEXT, a), true);
 
 		// today + month progress (animates in from 0 on open)
-		g.text(font, today.format(), x, py + 28, Theme.argb(Theme.TEXT, a), false);
-		g.text(font, today.season(), x + GRID_W - font.width(today.season()), py + 28, Theme.argb(Theme.TEXT_MUTED, a), false);
+		g.text(font, today.format(), x, py + 28, Theme.argb(Theme.TEXT, a), true);
+		g.text(font, today.season(), x + GRID_W - font.width(today.season()), py + 28, Theme.argb(Theme.ACCENT, a), true);
 		long monthStart = SkyblockTime.start(today.year(), today.month(), 1);
 		monthBar.target((now - monthStart) / (float) SkyblockTime.MONTH);
 		int barY = py + 42;
-		Theme.box(g, x, barY, GRID_W, 6, Theme.RAISED, a, a * 0.08f);
-		int fill = Math.round(GRID_W * monthBar.get());
-		if (fill >= 6) Theme.box(g, x, barY, fill, 6, Theme.ACCENT, a, a * 0.25f);
+		Theme.box(g, x, barY, GRID_W, 6, Theme.SLOT, a);
+		int fill = Math.round((GRID_W - 2) * monthBar.get());
+		g.fill(x + 1, barY + 1, x + 1 + fill, barY + 5, Theme.argb(Theme.ACCENT, a));
 
 		// month title between the arrows
 		String month = SkyblockTime.MONTHS[viewMonth] + " · Year " + viewYear;
-		g.text(font, month, x + (GRID_W - font.width(month)) / 2, py + 63, Theme.argb(Theme.TEXT, a), false);
+		g.text(font, month, x + (GRID_W - font.width(month)) / 2, py + 63, Theme.argb(Theme.TEXT, a), true);
 
 		extractGrid(g, x, py + 80, mouseX, mouseY, today, a);
 		extractUpcoming(g, px + LIST_X, py + 28, now, a);
@@ -119,23 +118,22 @@ public final class CalendarScreen extends CleanScreen {
 			boolean hovered = mouseX >= cx && mouseX < cx + CELL && mouseY >= cy && mouseY < cy + CELL;
 			List<Events.Event> events = Events.on(viewYear, viewMonth, day);
 
-			int bg = isToday ? Theme.mix(Theme.RAISED, Theme.ACCENT, 0.45f) : hovered ? Theme.HOVER : Theme.RAISED;
-			Theme.box(g, cx, cy, CELL, CELL, bg, pageAlpha, pageAlpha * (isToday ? 0.6f : 0.08f));
+			int bg = isToday ? Theme.mix(Theme.ROW, Theme.ACCENT, 0.35f) : hovered ? Theme.ROW_HOVER : Theme.ROW;
+			Theme.box(g, cx, cy, CELL, CELL, bg, pageAlpha, isToday ? Theme.ACCENT : Theme.LINE, pageAlpha);
 			String n = Integer.toString(day);
-			g.text(font, n, cx + (CELL - font.width(n)) / 2, cy + 4,
-					Theme.argb(isToday ? 0xFFFFFF : Theme.TEXT, pageAlpha), false);
+			g.text(font, n, cx + (CELL - font.width(n)) / 2, cy + 4, Theme.argb(Theme.TEXT, pageAlpha), true);
 
 			// one dot per event, centered along the bottom
 			int dots = Math.min(events.size(), 3), dx = cx + (CELL - (dots * 4 - 1)) / 2;
 			for (int i = 0; i < dots; i++)
 				g.fill(dx + i * 4, cy + CELL - 6, dx + i * 4 + 3, cy + CELL - 3,
-						Theme.argb(Theme.PALETTE.get(events.get(i).slot()), pageAlpha));
+						Theme.argb(Theme.color(events.get(i).slot()), pageAlpha));
 
 			if (hovered) {
 				List<Component> lines = new ArrayList<>();
 				lines.add(Component.literal(SkyblockTime.MONTHS[viewMonth] + " " + SkyblockTime.ordinal(day)));
 				if (events.isEmpty()) lines.add(Component.literal("No events").withColor(Theme.TEXT_MUTED));
-				for (Events.Event e : events) lines.add(Component.literal("● " + e.name()).withColor(Theme.PALETTE.get(e.slot())));
+				for (Events.Event e : events) lines.add(Component.literal("● " + e.name()).withColor(Theme.color(e.slot())));
 				g.setComponentTooltipForNextFrame(font, lines, mouseX, mouseY, Theme.TOOLTIP_STYLE);
 			}
 		}
@@ -143,20 +141,22 @@ public final class CalendarScreen extends CleanScreen {
 
 	private void extractUpcoming(GuiGraphicsExtractor g, int lx, int ly, long now, float a) {
 		int w = W - LIST_X - Theme.PAD;
-		g.text(font, "Upcoming", lx, ly, Theme.argb(Theme.TEXT_MUTED, a), false);
+		g.text(font, "Upcoming", lx, ly, Theme.argb(Theme.TEXT_MUTED, a), true);
 		List<Events.Occurrence> list = Events.upcoming(now);
 		for (int i = 0; i < Math.min(ROWS, list.size()); i++) {
 			Events.Occurrence o = list.get(i);
-			int y = ly + 14 + i * ROW_H, color = Theme.PALETTE.get(o.event().slot());
+			int y = ly + 14 + i * ROW_H, color = Theme.color(o.event().slot());
 			boolean active = o.active(now);
-			if (active) Theme.box(g, lx - 3, y - 4, w + 6, ROW_H - 1, color, a * 0.14f, a * 0.35f);
+			// row: stripe in the event's color; active rows get a colored border
+			Theme.box(g, lx - 3, y - 4, w + 6, ROW_H - 1, Theme.ROW, a, active ? color : Theme.LINE, a);
+			g.fill(lx - 2, y - 3, lx, y + ROW_H - 6, Theme.argb(color, a));
 			ItemStack item = EVENT_ITEMS.get(o.event().name());
-			if (item != null) Theme.item(g, item, lx, y - 3, 12, a);
-			g.text(font, o.event().name(), lx + 16, y, Theme.argb(Theme.TEXT, a), false);
+			if (item != null) Theme.item(g, item, lx + 2, y - 2, 12, a);
+			g.text(font, o.event().name(), lx + 17, y, Theme.argb(Theme.TEXT, a), true);
 			String when = active
 					? (o.end() > o.start() ? SkyblockTime.duration(o.end() - now) + " left" : "now")
 					: "in " + SkyblockTime.duration(o.start() - now);
-			g.text(font, when, lx + w - font.width(when), y, Theme.argb(active ? color : Theme.TEXT_MUTED, a), false);
+			g.text(font, when, lx + w - font.width(when), y, Theme.argb(active ? color : Theme.TEXT_MUTED, a), true);
 		}
 	}
 }

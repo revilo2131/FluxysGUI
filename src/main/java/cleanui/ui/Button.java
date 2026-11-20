@@ -1,31 +1,27 @@
 package cleanui.ui;
 
-import cleanui.CleanUi;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.input.InputWithModifiers;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
-import org.joml.Matrix3x2fStack;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * Themed button. Extends vanilla AbstractButton so keyboard focus, click sound and
- * narration keep working; only the drawing is ours. With an icon it draws as a tile:
- * icon on top, label below, and the icon lifts and brightens on hover.
- * With a color it tints background, border and icon in that color.
+ * narration keep working; only the drawing is ours.
+ * Plain: centered label. With {@link #tile}: a color stripe on the left, an item in a slot,
+ * title and colored subtitle. Hover widens the stripe and lifts and grows the item.
  */
 public final class Button extends AbstractButton {
-	private static final int ICON = 24;
-
 	private final Runnable action;
 	private final Anim hover = new Anim(0f, 18f);
 	private Component tooltip;
-	private Identifier icon;
-	private int color = -1; // -1 = neutral
+	private ItemStack item;
+	private Component subtitle;
+	private int color = Theme.ACCENT;
 
 	public Button(int x, int y, int w, int h, Component label, Runnable action) {
 		super(x, y, w, h, label);
@@ -37,13 +33,14 @@ public final class Button extends AbstractButton {
 		return this;
 	}
 
-	/** Icon sprite name under assets/cleanui/textures/gui/sprites/icon/, e.g. "calendar". */
-	public Button icon(String name) {
-		this.icon = Identifier.fromNamespaceAndPath(CleanUi.ID, "icon/" + name);
+	/** Draw as a tile with an item and a subtitle. */
+	public Button tile(ItemStack item, Component subtitle) {
+		this.item = item;
+		this.subtitle = subtitle;
 		return this;
 	}
 
-	/** Identity color (RGB), usually from {@link Theme#PALETTE}. */
+	/** Identity color (RGB), usually {@link Theme#color(int)}. */
 	public Button color(int rgb) {
 		this.color = rgb;
 		return this;
@@ -58,35 +55,31 @@ public final class Button extends AbstractButton {
 	protected void extractContents(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
 		float a = CleanScreen.currentAlpha();
 		hover.target(isHoveredOrFocused() ? 1f : 0f);
-		float h = hover.get() * (active ? 1f : 0.6f); // inactive still reacts, but less
-
-		boolean tinted = color != -1;
-		int bg = tinted ? Theme.mix(Theme.RAISED, color, 0.16f + 0.16f * h) : Theme.mix(Theme.RAISED, Theme.HOVER, h);
-		int border = tinted ? color : Theme.BORDER;
-		float borderAlpha = tinted ? 0.30f + 0.45f * h : 0.10f + 0.12f * h;
-		Theme.box(g, getX(), getY(), width, height, bg, a, a * borderAlpha);
-
+		float h = hover.get() * (active ? 1f : 0.4f); // inactive still reacts, but less
+		int x = getX(), y = getY();
 		Font font = Minecraft.getInstance().font;
-		int labelColor = Theme.argb(active || tinted ? Theme.TEXT : Theme.TEXT_MUTED, a);
-		int labelX = getX() + (width - font.width(getMessage())) / 2;
 
-		if (icon == null) {
-			g.text(font, getMessage(), labelX, getY() + (height - 8) / 2, labelColor, false);
+		Theme.box(g, x, y, width, height, Theme.mix(Theme.ROW, Theme.ROW_HOVER, h), a,
+				Theme.mix(Theme.LINE, color, 0.5f * h), a);
+
+		if (item == null) {
+			int labelColor = Theme.mix(active ? Theme.TEXT : Theme.TEXT_MUTED, color, h);
+			g.text(font, getMessage(), x + (width - font.width(getMessage())) / 2, y + (height - 8) / 2,
+					Theme.argb(labelColor, a), false);
 		} else {
-			int base = tinted ? color : Theme.TEXT;
-			int iconColor = Theme.mix(base, 0xFFFFFF, 0.10f + 0.30f * h); // brighten toward white on hover
-			float scale = 1f + 0.08f * h;
-			Matrix3x2fStack pose = g.pose();
-			pose.pushMatrix();
-			pose.translate(getX() + width / 2f, getY() + 10 + ICON / 2f - 2f * h); // lift 2px on hover
-			pose.scale(scale, scale);
-			g.blitSprite(RenderPipelines.GUI_TEXTURED, icon, -ICON / 2, -ICON / 2, ICON, ICON,
-					Theme.argb(iconColor, a * (active ? 1f : 0.8f)));
-			pose.popMatrix();
-			g.text(font, getMessage(), labelX, getY() + height - 16, labelColor, false);
+			float on = active ? 1f : 0.45f;
+			g.fill(x + 1, y + 1, x + 4 + Math.round(2 * h), y + height - 1, Theme.argb(color, a * on)); // stripe
+			int lift = Math.round(2 * h);
+			Theme.slot(g, item, x + (width - 18) / 2, y + 7 - lift, 1f + 0.15f * h, a);
+			centered(g, font, getMessage(), x, y + height - 25, active ? Theme.TEXT : Theme.TEXT_MUTED, a);
+			centered(g, font, subtitle, x, y + height - 14, active ? color : Theme.TEXT_MUTED, a);
 		}
 
 		if (tooltip != null && isHovered()) g.setTooltipForNextFrame(font, tooltip, mouseX, mouseY, Theme.TOOLTIP_STYLE);
+	}
+
+	private void centered(GuiGraphicsExtractor g, Font font, Component text, int x, int y, int rgb, float a) {
+		g.text(font, text, x + 2 + (width - font.width(text)) / 2, y, Theme.argb(rgb, a), true); // +2 offsets the stripe
 	}
 
 	@Override

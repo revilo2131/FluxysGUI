@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-/** Entry screen: one icon tile per feature. Tiles turn active as features land. */
+/** Entry screen: one tile per feature, plus a profile card. Tiles turn active as features land. */
 public final class HubScreen extends CleanScreen {
 	private static final int W = 260, TILE_H = 64, GAP = 6, HEADER = 40;
 	private static final int H = HEADER + TILE_H + Theme.PAD;
@@ -26,12 +26,13 @@ public final class HubScreen extends CleanScreen {
 			EquipmentSlot.MAINHAND, EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
 
 	/** {@code open} builds the feature's screen with the hub as parent; null = not built yet. */
-	private record Feature(String name, String icon, String description, Function<Screen, Screen> open) {}
+	private record Feature(String name, ItemStack item, int color, String subtitle, String description,
+			Function<Screen, Screen> open) {}
 
 	private static final Feature[] FEATURES = {
-			new Feature("Calendar", "calendar", "SkyBlock dates, seasons and events.", CalendarScreen::new),
-			new Feature("Skills", "skills", "Skill levels and progress.", null),
-			new Feature("Storage", "storage", "Backpacks and ender chest pages you've opened.", null),
+			new Feature("Calendar", new ItemStack(Items.CLOCK), 4, "Events", "SkyBlock dates, seasons and events.", CalendarScreen::new),
+			new Feature("Skills", new ItemStack(Items.DIAMOND_SWORD), 1, "Soon", "Skill levels and progress.", null),
+			new Feature("Storage", new ItemStack(Items.ENDER_CHEST), 0, "Soon", "Backpacks and ender chest pages you've opened.", null),
 	};
 
 	public HubScreen() {
@@ -47,8 +48,8 @@ public final class HubScreen extends CleanScreen {
 			boolean ready = f.open() != null;
 			Button tile = new Button(left + i * (tileW + GAP), y, tileW, TILE_H, Component.literal(f.name()),
 					() -> { if (ready) minecraft.setScreenAndShow(f.open().apply(this)); })
-					.icon(f.icon())
-					.color(Theme.PALETTE.get(i))
+					.tile(f.item(), Component.literal(f.subtitle()))
+					.color(Theme.color(f.color()))
 					.tooltip(Component.literal(ready ? f.description() : f.description() + " Coming soon."));
 			tile.active = ready;
 			addRenderableWidget(tile);
@@ -60,9 +61,8 @@ public final class HubScreen extends CleanScreen {
 		int x = (width - W) / 2, y = (height - H) / 2;
 		Theme.panel(g, x, y, W, H, a);
 		Theme.item(g, SKYBLOCK_MENU, x + Theme.PAD, y + Theme.PAD - 2, 12, a);
-		g.text(font, title, x + Theme.PAD + 16, y + Theme.PAD, Theme.argb(Theme.TEXT, a), false);
-		Theme.paletteBar(g, x + Theme.PAD + 16, y + Theme.PAD + 11, 10, a);
-		g.text(font, "Pick a feature.", x + Theme.PAD, y + Theme.PAD + 20, Theme.argb(Theme.TEXT_MUTED, a), false);
+		Theme.title(g, font, title.getString(), x + Theme.PAD + 16, y + Theme.PAD, a);
+		g.text(font, "Pick a feature.", x + Theme.PAD, y + Theme.PAD + 20, Theme.argb(Theme.TEXT_MUTED, a), true);
 		extractProfileCard(g, mouseX, mouseY, a);
 	}
 
@@ -74,8 +74,7 @@ public final class HubScreen extends CleanScreen {
 		Theme.panel(g, x, y, CARD_W, CARD_H, a);
 
 		String name = player.getName().getString();
-		g.text(font, name, x + (CARD_W - font.width(name)) / 2, y + Theme.PAD, Theme.argb(Theme.TEXT, a), false);
-		Theme.paletteBar(g, x + CARD_W / 2 - 15, y + Theme.PAD + 11, 10, a);
+		Theme.title(g, font, name, x + (CARD_W - font.width(name)) / 2, y + Theme.PAD, a);
 
 		// the model can't fade, so it appears once the panel is mostly in
 		if (a > 0.5f)

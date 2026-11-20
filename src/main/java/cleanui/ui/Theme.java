@@ -2,49 +2,46 @@ package cleanui.ui;
 
 import cleanui.CleanUi;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import org.joml.Matrix3x2fStack;
 
-/** Design tokens and the shared panel look. Colors are RGB; alpha is applied per draw. */
+/**
+ * Design tokens and shared drawing. Crisp style: square corners, 1px lines, a gold frame
+ * on top-level panels. Colors are RGB; alpha is applied per draw.
+ */
 public final class Theme {
-	public static final int BG = 0x0F1115;
-	public static final int PANEL = 0x171A21;
-	public static final int RAISED = 0x272C38; // neutral buttons, cells
-	public static final int HOVER = 0x323848;
-	public static final int BORDER = 0xFFFFFF; // drawn at low alpha
-	public static final int TEXT = 0xF0F2F8;
-	public static final int TEXT_MUTED = 0x9AA1B2;
+	public static final int PANEL = 0x18191D;
+	public static final int ROW = 0x222327;      // rows, cells, buttons
+	public static final int ROW_HOVER = 0x2C2D33;
+	public static final int SLOT = 0x141518;     // item slots
+	public static final int LINE = 0x3B3C42;     // 1px borders and separators
+	public static final int GOLD = 0xC8902E;     // top-level panel frame
+	public static final int ACCENT = 0xF5A524;   // titles, highlights
+	public static final int TEXT = 0xFFFFFF;
+	public static final int TEXT_MUTED = 0x9C9CA3;
 
-	/** Three-color palette. Each feature takes one as its identity color. */
-	public record Palette(int primary, int secondary, int tertiary) {
-		public int get(int i) {
-			return switch (Math.floorMod(i, 3)) {
-				case 0 -> primary;
-				case 1 -> secondary;
-				default -> tertiary;
-			};
-		}
-	}
+	/** Identity colors; each feature or event takes one by index. */
+	// shortcut: fixed set; user-picked colors come with the customization phase.
+	private static final int[] COLORS = {
+			0xA35CE6, // purple
+			0x4FA8E8, // blue
+			0xE35AAE, // pink
+			0xDB4A36, // red
+			0xF0902A, // orange
+			0x62C043, // green
+			0x4CB8A0, // teal
+	};
 
-	// shortcut: one fixed palette; a palette picker comes with the customization phase.
-	public static final Palette PALETTE = new Palette(0x7B7BFF, 0x38D6F0, 0xFF6FAE); // indigo, cyan, rose
-	public static final int ACCENT = PALETTE.primary();
-
-	public static final int PAD = 8; // 8px grid
+	public static final int PAD = 8;
 
 	/** Vanilla tooltip style id; maps to sprites tooltip/clean_background and tooltip/clean_frame. */
-	public static final Identifier TOOLTIP_STYLE = id("clean");
-
-	static final Identifier PANEL_SPRITE = id("panel");
-	static final Identifier OUTLINE_SPRITE = id("outline");
-	private static final Identifier SHADOW_SPRITE = id("shadow");
+	public static final Identifier TOOLTIP_STYLE = Identifier.fromNamespaceAndPath(CleanUi.ID, "clean");
 
 	private Theme() {}
 
-	private static Identifier id(String path) {
-		return Identifier.fromNamespaceAndPath(CleanUi.ID, path);
+	public static int color(int index) {
+		return COLORS[Math.floorMod(index, COLORS.length)];
 	}
 
 	/** RGB + alpha (0..1) → ARGB. */
@@ -60,10 +57,35 @@ public final class Theme {
 		return r << 16 | g << 8 | b;
 	}
 
-	/** Rounded rect with a 1px border, tinted. Used by panels, buttons and cells. */
-	public static void box(GuiGraphicsExtractor g, int x, int y, int w, int h, int rgb, float alpha, float borderAlpha) {
-		g.blitSprite(RenderPipelines.GUI_TEXTURED, PANEL_SPRITE, x, y, w, h, argb(rgb, alpha));
-		g.blitSprite(RenderPipelines.GUI_TEXTURED, OUTLINE_SPRITE, x, y, w, h, argb(BORDER, borderAlpha));
+	/** Filled rect with a 1px border. */
+	public static void box(GuiGraphicsExtractor g, int x, int y, int w, int h, int bg, float alpha, int border, float borderAlpha) {
+		g.fill(x, y, x + w, y + h, argb(bg, alpha));
+		int b = argb(border, borderAlpha);
+		g.fill(x, y, x + w, y + 1, b);
+		g.fill(x, y + h - 1, x + w, y + h, b);
+		g.fill(x, y + 1, x + 1, y + h - 1, b);
+		g.fill(x + w - 1, y + 1, x + w, y + h - 1, b);
+	}
+
+	/** Box with the standard grey line border. */
+	public static void box(GuiGraphicsExtractor g, int x, int y, int w, int h, int bg, float alpha) {
+		box(g, x, y, w, h, bg, alpha, LINE, alpha);
+	}
+
+	/** Top-level panel: dark, slightly see-through, gold frame. */
+	public static void panel(GuiGraphicsExtractor g, int x, int y, int w, int h, float a) {
+		box(g, x, y, w, h, PANEL, a * 0.94f, GOLD, a * 0.85f);
+	}
+
+	/** Screen title in accent color with a short underline, like an active tab. */
+	public static void title(GuiGraphicsExtractor g, net.minecraft.client.gui.Font font, String text, int x, int y, float a) {
+		g.text(font, text, x, y, argb(ACCENT, a), true);
+		g.fill(x, y + 11, x + font.width(text), y + 13, argb(ACCENT, a));
+	}
+
+	/** Small right-pointing arrow (▸), 4×7 px. */
+	public static void arrow(GuiGraphicsExtractor g, int x, int y, int rgb, float a) {
+		for (int i = 0; i < 4; i++) g.fill(x + i, y + i, x + i + 1, y + 7 - i, argb(rgb, a));
 	}
 
 	/**
@@ -72,7 +94,7 @@ public final class Theme {
 	 */
 	public static void item(GuiGraphicsExtractor g, ItemStack stack, int x, int y, int size, float a) {
 		if (a < 0.3f) return;
-		float s = size / 16f * (0.6f + 0.4f * (a - 0.3f) / 0.7f);
+		float s = size / 16f * (0.6f + 0.4f * Math.min(1f, (a - 0.3f) / 0.7f));
 		Matrix3x2fStack pose = g.pose();
 		pose.pushMatrix();
 		pose.translate(x + size / 2f, y + size / 2f);
@@ -81,14 +103,9 @@ public final class Theme {
 		pose.popMatrix();
 	}
 
-	/** Thin bar split into the three palette colors; the brand mark under titles. */
-	public static void paletteBar(GuiGraphicsExtractor g, int x, int y, int segment, float a) {
-		for (int i = 0; i < 3; i++) g.fill(x + i * segment, y, x + (i + 1) * segment, y + 2, argb(PALETTE.get(i), a));
-	}
-
-	/** Raised panel with a soft drop shadow. {@code a} is the fade alpha. */
-	public static void panel(GuiGraphicsExtractor g, int x, int y, int w, int h, float a) {
-		g.blitSprite(RenderPipelines.GUI_TEXTURED, SHADOW_SPRITE, x - 8, y - 6, w + 16, h + 16, argb(0xFFFFFF, a));
-		box(g, x, y, w, h, PANEL, a * 0.97f, a * 0.08f);
+	/** Item in a dark square slot, like an inventory slot. */
+	public static void slot(GuiGraphicsExtractor g, ItemStack stack, int x, int y, float itemScale, float a) {
+		box(g, x, y, 18, 18, SLOT, a);
+		item(g, stack, x + 1, y + 1, Math.round(16 * itemScale), a);
 	}
 }
