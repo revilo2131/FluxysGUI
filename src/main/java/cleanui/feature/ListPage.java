@@ -37,6 +37,7 @@ public final class ListPage extends MenuPage {
 		BESTIARY(Items.WRITABLE_BOOK, 1, null, 3, "islands", "Pick an island.", false),
 		BESTIARY_PAGE(Items.WRITABLE_BOOK, 2, "Bestiary", 4, "mobs", "Hover a mob for its milestones.", false),
 		PETS(Items.BONE, 1, null, 4, "pets", "Click a pet to summon it.", false),
+		DUNGEONS(Items.SKELETON_SKULL, 1, null, 3, "entries", "Click a class to select it.", false),
 		/** Fallback for a level menu that turned out not to have tiers. */
 		GENERIC(Items.BOOK, 2, null, 4, "items", "Hover for details.", false);
 
@@ -60,6 +61,7 @@ public final class ListPage extends MenuPage {
 	private static final Pattern COLLECTIONS_TITLE = Pattern.compile("^Collections?$");
 	private static final Pattern CATEGORY_TITLE = Pattern.compile("^(.+) Collections$");
 	private static final Pattern BESTIARY_TITLE = Pattern.compile("^Bestiary(?:\\s*[➜>\\-:]\\s*(.+))?$");
+	private static final Pattern DUNGEONS_TITLE = Pattern.compile("^Dungeoneering$");
 	private static final Pattern PETS_TITLE = Pattern.compile("^Pets(?: \\(\\d+/\\d+\\))?$");
 	private static final int TOP = 24, GAP = 5, ROW_GAP = 4;
 	private static final Map<String, ItemStack> ITEM_CACHE = new HashMap<>();
@@ -89,6 +91,7 @@ public final class ListPage extends MenuPage {
 		if (c.bestiary && (m = BESTIARY_TITLE.matcher(title)).matches())
 			return m.group(1) == null ? new ListPage("Bestiary", Mode.BESTIARY, original) : new ListPage(m.group(1).strip(), Mode.BESTIARY_PAGE, original);
 		if (c.pets && PETS_TITLE.matcher(title).matches()) return new ListPage("Pets", Mode.PETS, original);
+		if (c.skills && DUNGEONS_TITLE.matcher(title).matches()) return new ListPage("Dungeoneering", Mode.DUNGEONS, original);
 		return null;
 	}
 
@@ -173,7 +176,8 @@ public final class ListPage extends MenuPage {
 		boolean locked = e.locked() && mode.depth == 2;
 		int barColor = e.maxed() ? Theme.ACCENT : Theme.mix(Theme.FRAME_DIM, Theme.FRAME, 0.3f);
 
-		Theme.box(g, x, y, w, th, Theme.mix(Theme.ROW, Theme.ROW_HOVER, h), a, Theme.mix(Theme.LINE, Theme.FRAME, 0.8f * h), a);
+		boolean selected = t.item().lore().stream().anyMatch(l -> l.contains("SELECTED")); // e.g. your current dungeon class
+		Theme.box(g, x, y, w, th, Theme.mix(Theme.ROW, Theme.ROW_HOVER, h), a, selected ? Theme.FRAME : Theme.mix(Theme.LINE, Theme.FRAME, 0.8f * h), a);
 		boolean tall = th >= 34;
 		int iconX = x + 6, iconY = tall ? y + 6 : y + (th - 14) / 2;
 		// not found yet: Hypixel shows a placeholder; show the collection's real item instead
@@ -196,7 +200,7 @@ public final class ListPage extends MenuPage {
 		if (tall) {
 			int y2 = y + 19;
 			String value = e.collected() != null ? SkillParser.compact(e.collected())
-					: e.done() != null ? e.done() + "/" + e.total()
+					: e.done() != null ? SkillParser.compact(e.done()) + "/" + SkillParser.compact(e.total())
 					: e.percent() != null ? Math.round(e.percent() * 100) + "%" : null;
 			if (locked) g.text(font, "Not found", tx, y2, Theme.argb(Theme.TEXT_MUTED, a), true);
 			else if (tier != null) { // "2.5M ······ [IX]"

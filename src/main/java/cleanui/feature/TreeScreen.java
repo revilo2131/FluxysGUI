@@ -1,7 +1,9 @@
 package cleanui.feature;
 
 import cleanui.data.Config;
+import cleanui.skyblock.CollectionParser;
 import cleanui.skyblock.PerkParser;
+import cleanui.skyblock.TrackParser;
 import cleanui.skyblock.PerkParser.State;
 import cleanui.ui.Anim;
 import cleanui.ui.Button;
@@ -41,7 +43,8 @@ public final class TreeScreen extends MenuPage {
 	private final Map<Integer, Anim> hover = new HashMap<>();
 	private Button up, down;
 	private int upSlot = -1, downSlot = -1, tokens = -1;
-	private final List<int[]> tierLabels = new ArrayList<>(); // {row, tier}
+	private final List<int[]> tierLabels = new ArrayList<>(); // {row, tier, fill 0..1000}
+	private final Anim xpBar = new Anim(0f, 5f); // grows in from the bottom on open
 
 	private TreeScreen(String title, AbstractContainerScreen<?> original) {
 		super(title, new ItemStack(Items.AMETHYST_CLUSTER), 1, original);
@@ -86,7 +89,8 @@ public final class TreeScreen extends MenuPage {
 			if (name.isEmpty() || NAV.contains(name)) continue;
 			int col = item.slot() % 9, row = item.slot() / 9, tier = PerkParser.tier(name);
 			if (col == 0 && tier >= 0) {
-				tierLabels.add(new int[]{row, tier});
+				String tid = BuiltInRegistries.ITEM.getKey(item.stack().getItem()).toString();
+				tierLabels.add(new int[]{row, tier, tierFill(tid, item)});
 				continue;
 			}
 			String id = BuiltInRegistries.ITEM.getKey(item.stack().getItem()).toString();
@@ -114,8 +118,10 @@ public final class TreeScreen extends MenuPage {
 		if (tokens >= 0) Theme.badge(g, font, tokens + " tokens", bx + font.width(tokens + " tokens") + 5, y + 4, Theme.FRAME, a);
 
 		// row labels
+		extractXpBar(g, x, a);
 		for (int[] t : tierLabels)
-			Theme.label(g, font, "Tier " + t[1], x, by() + TOP + t[0] * ROW_STEP + (TILE_H - 8) / 2, a);
+			g.text(font, "Tier " + t[1], x + 8, by() + TOP + t[0] * ROW_STEP + (TILE_H - 8) / 2,
+					Theme.argb(t[2] >= 1000 ? Theme.TEXT : t[2] > 0 ? Theme.color(5) : Theme.TEXT_MUTED, a), true);
 
 		// connectors between neighbouring perks, gold where both ends are unlocked
 		Map<Integer, Node> bySlot = new HashMap<>();
@@ -133,6 +139,38 @@ public final class TreeScreen extends MenuPage {
 			extractNode(g, n, over, a);
 		}
 		if (hovered != null) Theme.itemTooltip(g, hovered.item().stack(), mouseX, mouseY); // Hypixel's perk text
+	}
+
+	/** How full a tier is (0..1000): reached = full, in progress = its percent, locked = empty. */
+	private static int tierFill(String itemId, MenuItem item) {
+		return switch (TrackParser.state(itemId)) {
+			case DONE -> 1000;
+			case LOCKED -> 0;
+			case CURRENT -> {
+				Float p = CollectionParser.parse(item.name(), item.lore()).percent();
+				yield p == null ? 0 : Math.round(p * 1000);
+			}
+		};
+	}
+
+	/**
+	 * HOTM XP: a green bar along the tier labels, filled from the bottom row up. Each row adds
+	 * its tier's fill, so finished tiers are full and the current one is partly filled.
+	 */
+	private void extractXpBar(GuiGraphicsExtractor g, int x, float a) {
+		if (tierLabels.isEmpty()) return;
+		int topRow = Integer.MAX_VALUE, bottomRow = -1;
+		float filled = 0;
+		for (int[] t : tierLabels) {
+			topRow = Math.min(topRow, t[0]);
+			bottomRow = Math.max(bottomRow, t[0]);
+			filled += t[2] / 1000f * ROW_STEP;
+		}
+		int top = by() + TOP + topRow * ROW_STEP, bottom = by() + TOP + bottomRow * ROW_STEP + TILE_H;
+		xpBar.target(Math.min(filled, bottom - top));
+		int fillTop = bottom - Math.round(xpBar.get());
+		Theme.box(g, x, top, 5, bottom - top, Theme.SLOT, a);
+		if (fillTop < bottom - 1) g.fill(x + 1, Math.max(top + 1, fillTop), x + 4, bottom - 1, Theme.argb(Theme.color(5), a));
 	}
 
 	private static void link(GuiGraphicsExtractor g, int x1, int y1, int x2, int y2, Node a1, Node a2, float a) {

@@ -67,7 +67,8 @@ public final class Preview {
 			new Shot("settings", mc -> new SettingsScreen(fakeSkyBlockMenu(mc)), -1, -1),
 			new Shot("restyled", Preview::fakeWardrobe, -1, -1),
 			new Shot("hotm", Preview::fakeHotm, -1, -1),
-			new Shot("hotm-hover", Preview::fakeHotm, 470, 355));
+			new Shot("hotm-hover", Preview::fakeHotm, 470, 355),
+			new Shot("dungeons", Preview::fakeDungeons, -1, -1));
 	private static final int START = 80, EACH = 40;
 	/** -Dcleanui.preview.only=a,b runs just those shots. */
 	private static final List<Shot> RUN = SHOTS.stream()
@@ -277,7 +278,11 @@ public final class Preview {
 	/** Heart of the Mountain, tiers 7 (top) to 2: tier labels in column 0, perks in a tree, scroll arrows. */
 	private static Screen fakeHotm(Minecraft mc) {
 		SimpleContainer c = new SimpleContainer(54);
-		for (int row = 0; row < 6; row++) put(c, row * 9, Items.GLASS_PANE, "Tier " + (7 - row), "Tier " + (7 - row) + " perks");
+		for (int row = 0; row < 6; row++) { // tiers 2-5 reached, 6 at 45%, 7 locked
+			int tier = 7 - row;
+			DyeColor color = tier <= 5 ? DyeColor.LIME : tier == 6 ? DyeColor.YELLOW : DyeColor.RED;
+			put(c, row * 9, pane(color), "Tier " + tier, tier == 6 ? "Progress: 45%" : "Tier " + tier + " perks");
+		}
 		Object[][] perks = { // slot, item, name, level line
 				{2, Items.COAL, "Mining Madness", "Level 0/1"}, {3, Items.COAL, "Skymall", "Level 0/1"},
 				{4, Items.COAL, "Mining Master", "Level 0/10"}, {5, Items.COAL, "Front Loaded", "Level 0/1"},
@@ -300,6 +305,23 @@ public final class Preview {
 		put(c, 53, Items.ARROW, "Scroll Down");
 		put(c, 17, Items.AMETHYST_CLUSTER, "Heart of the Mountain", "Token of the Mountain: 3", "Mithril Powder: 1.2M");
 		return CleanUi.pageFor("Heart of the Mountain", menu(mc, c, "Heart of the Mountain"));
+	}
+
+	private static Screen fakeDungeons(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		put(c, 4, Items.WITHER_SKELETON_SKULL, "Catacombs", "Catacombs Level: 24", "Progress to Level 25: 45%", "1,240,000/3M");
+		Object[][] classes = {{Items.POTION, "Healer", "24", "38"}, {Items.BLAZE_ROD, "Mage", "31", "72"},
+				{Items.IRON_SWORD, "Berserk", "18", "5"}, {Items.BOW, "Archer", "27", "61"}, {Items.LEATHER_CHESTPLATE, "Tank", "15", "90"}};
+		for (int i = 0; i < classes.length; i++) {
+			Object[] k = classes[i];
+			put(c, 20 + i, (Item) k[0], (String) k[1], k[1] + " Level " + k[2], "Progress to Level " + (Integer.parseInt((String) k[2]) + 1) + ": " + k[3] + "%",
+					i == 1 ? "SELECTED" : "Click to select!");
+		}
+		put(c, 30, Items.WRITTEN_BOOK, "Dungeon Journals", "Journals found: 12/30");
+		put(c, 31, Items.NETHER_STAR, "Essence", "View your Dungeon Essence.");
+		put(c, 32, Items.ENDER_EYE, "Boss Collections", "Collections Unlocked: 5/7");
+		put(c, 48, Items.ARROW, "Go Back");
+		return CleanUi.pageFor("Dungeoneering", menu(mc, c, "Dungeoneering"));
 	}
 
 	private static Screen fakeCalendar(Minecraft mc) {

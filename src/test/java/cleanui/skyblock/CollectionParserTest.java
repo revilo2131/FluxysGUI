@@ -63,6 +63,17 @@ class CollectionParserTest {
 	}
 
 	@Test
+	void levelFromLore() {
+		var healer = CollectionParser.parse("Healer", List.of("Healer Level 24", "Progress to Level 25: 38%", "SELECTED"));
+		assertEquals(24, healer.tier());
+		assertTrue(healer.arabic());
+		assertEquals(0.38f, healer.percent(), 1e-4);
+		assertEquals(30, CollectionParser.parse("Catacombs", List.of("Catacombs Level: XXX")).tier());
+		// a "Progress to Level" line is not the current level
+		assertEquals(-1, CollectionParser.parse("Thing", List.of("Progress to Level 5: 10%")).tier());
+	}
+
+	@Test
 	void collectionItemIds() {
 		assertEquals("nether_wart", CollectionItems.idFor("Nether Wart"));
 		assertEquals("melon_slice", CollectionItems.idFor("Melon"));

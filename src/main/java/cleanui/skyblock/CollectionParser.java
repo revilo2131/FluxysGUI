@@ -26,6 +26,8 @@ public final class CollectionParser {
 
 	private static final Pattern TIER = Pattern.compile("^(.+?) ([IVXLCDM]+|\\d+)$");
 	private static final Pattern PET = Pattern.compile("^\\[Lvl (\\d+)] (.+)$");
+	/** "Healer Level 24" or "Catacombs Level: XXIV" in the lore, for items without a tier in their name. */
+	private static final Pattern LORE_LEVEL = Pattern.compile("(?:^|\\s)Level:?\\s+([IVXLCDM]+|\\d+)\\s*$");
 	private static final Pattern PERCENT = Pattern.compile("([\\d.]+)%");
 	private static final Pattern AMOUNT = Pattern.compile("([\\d,.]+[kKmMbB]?)\\s*/\\s*([\\d,.]+[kKmMbB]?)\\s*$");
 	private static final Pattern COLLECTED = Pattern.compile("Total [Cc]ollected:?\\s*([\\d,.]+[kKmMbB]?)");
@@ -68,6 +70,10 @@ public final class CollectionParser {
 				}
 			}
 			if (collected == null && (m = COLLECTED.matcher(line)).find()) collected = m.group(1);
+			if (tier < 0 && !line.startsWith("Progress") && (m = LORE_LEVEL.matcher(line)).find()) {
+				tier = SkillParser.level(m.group(1));
+				arabic = Character.isDigit(m.group(1).charAt(0));
+			}
 			// "Collection Maxed Out!" means maxed; "Collections Maxed Out: 4/11" is just a count
 			if (!hasNumber && MAXED.matcher(line).find()) maxed = true;
 		}
