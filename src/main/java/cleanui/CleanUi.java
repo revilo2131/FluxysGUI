@@ -1,6 +1,7 @@
 package cleanui;
 
-import cleanui.feature.HubScreen;
+import cleanui.dev.Preview;
+import cleanui.feature.OverviewScreen;
 import cleanui.feature.SkillsScreen;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
@@ -25,8 +26,9 @@ public final class CleanUi implements ClientModInitializer {
 				new KeyMapping("key.cleanui.open", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, category));
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
-			while (open.consumeClick()) client.setScreenAndShow(new HubScreen());
+			while (open.consumeClick()) client.setScreenAndShow(new OverviewScreen());
 		});
+		Preview.init(); // dev only; does nothing unless -Dcleanui.preview=true
 
 		// Show our Skills screen in place of Hypixel's "Your Skills" menu (only on Hypixel).
 		ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {

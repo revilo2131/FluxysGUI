@@ -63,6 +63,35 @@ class SkillParserTest {
 	}
 
 	@Test
+	void realTamingLore() {
+		// from the live Hypixel menu (Nov 2026)
+		var s = SkillParser.parse("Taming XLVIII", List.of(
+				"Level up pets to earn Taming EXP!", "",
+				"Progress to Level XLIX: 56%",
+				"                    2,070,294.5/3.7M"));
+		assertEquals(48, s.level());
+		assertEquals(0.56f, s.progress(), 1e-4);
+		assertEquals("2.07M", SkillParser.compact(s.current()));
+		assertEquals("3.7M", SkillParser.compact(s.needed()));
+	}
+
+	@Test
+	void dungeoneeringHasNoProgressInThisMenu() {
+		// from the live menu: just a description, so it isn't a parsed skill
+		assertNull(SkillParser.parse("Dungeoneering", List.of("Complete Dungeons to level up your", "classes!", "", "Click to view!")));
+	}
+
+	@Test
+	void compactNumbers() {
+		assertEquals("800k", SkillParser.compact("800k"));
+		assertEquals("26.5k", SkillParser.compact("26,529"));
+		assertEquals("50", SkillParser.compact("50"));
+		assertEquals("1.2B", SkillParser.compact("1,200,000,000"));
+		assertEquals("12.5M", SkillParser.compact("12.5M"));
+		assertEquals("?", SkillParser.compact("?"));
+	}
+
+	@Test
 	void romanNumerals() {
 		assertEquals(4, SkillParser.level("IV"));
 		assertEquals(9, SkillParser.level("IX"));

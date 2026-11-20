@@ -122,6 +122,30 @@ public final class Theme {
 	/** Item in a dark square slot, like an inventory slot. */
 	public static void slot(GuiGraphicsExtractor g, ItemStack stack, int x, int y, float itemScale, float a) {
 		box(g, x, y, 18, 18, SLOT, a);
-		item(g, stack, x + 1, y + 1, Math.round(16 * itemScale), a);
+		int size = Math.round(16 * itemScale);
+		item(g, stack, x + 9 - size / 2, y + 9 - size / 2, size, a);
+	}
+
+	/** Small muted section label, e.g. "NEXT UP". */
+	public static void label(GuiGraphicsExtractor g, net.minecraft.client.gui.Font font, String text, int x, int y, float a) {
+		g.text(font, text, x, y, argb(TEXT_MUTED, a), true);
+	}
+
+	/** An item's full tooltip (e.g. Hypixel's lore) in the Clean UI style. */
+	public static void itemTooltip(GuiGraphicsExtractor g, ItemStack stack, int mouseX, int mouseY) {
+		var mc = net.minecraft.client.Minecraft.getInstance();
+		g.setComponentTooltipForNextFrame(mc.font, net.minecraft.client.gui.screens.Screen.getTooltipFromItem(mc, stack),
+				mouseX, mouseY, TOOLTIP_STYLE);
+	}
+
+	/**
+	 * Draws {@code left} at x and {@code right} right-aligned at x + w, dropping
+	 * {@code left} if the two would touch. Keeps rows from ever overlapping.
+	 */
+	public static void textPair(GuiGraphicsExtractor g, net.minecraft.client.gui.Font font, String left, int leftRgb,
+			String right, int rightRgb, int x, int y, int w, float a) {
+		int rw = font.width(right);
+		g.text(font, right, x + w - rw, y, argb(rightRgb, a), true);
+		if (left != null && font.width(left) + 6 <= w - rw) g.text(font, left, x, y, argb(leftRgb, a), true);
 	}
 }

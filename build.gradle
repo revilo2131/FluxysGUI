@@ -13,6 +13,18 @@ dependencies {
 
 test { useJUnitPlatform() }
 
+loom {
+	runs {
+		// gradlew runPreview: opens every page in a dev world and screenshots it (see cleanui.dev.Preview)
+		preview {
+			inherit client
+			configName = "Preview"
+			vmArg "-Dcleanui.preview=true"
+			programArgs "--quickPlaySingleplayer", "New World", "--width", "1920", "--height", "1080"
+		}
+	}
+}
+
 processResources {
 	def version = project.version
 	inputs.property "version", version

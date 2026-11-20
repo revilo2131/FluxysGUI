@@ -7,19 +7,22 @@ import net.minecraft.network.chat.Component;
 import org.joml.Matrix3x2fStack;
 
 /**
- * Base for every Clean UI screen: fade + scale on open and close, and a shared alpha
- * that widgets read via {@link #currentAlpha()}. Subclasses draw in {@link #extractContent}.
- * Closing returns to {@code parent} if there is one.
+ * Base for every Clean UI screen: fade + scale on open and close, and the alphas that
+ * widgets read via {@link #currentAlpha} so they fade with their screen.
+ * Subclasses draw in {@link #extractContent}.
  */
 public abstract class CleanScreen extends Screen {
+	/** Dev preview only: forces the mouse position so hover states can be screenshotted. */
+	public static int debugMouseX = -1, debugMouseY = -1;
+
 	private final Anim open = new Anim(0f, 14f);
-	private final Screen parent;
 	private boolean closing;
 	private float alpha;
+	/** Alpha for page content; a subclass lowers it while a page slides in. */
+	protected float bodyAlpha = 1f;
 
-	protected CleanScreen(Component title, Screen parent) {
+	protected CleanScreen(Component title) {
 		super(title);
-		this.parent = parent;
 	}
 
 	/** Draw this screen's panels and text. Widgets are drawn after, on top. */
@@ -27,14 +30,27 @@ public abstract class CleanScreen extends Screen {
 
 	@Override
 	public void added() {
-		// replay the open animation whenever this screen is shown, including on return from a child
+		// replay the open animation whenever this screen is shown
 		closing = false;
 		open.snap(0f);
 		open.target(1f);
 	}
 
+	/** Show at full size and opacity right away (e.g. switching tabs inside an open window). */
+	protected void skipOpenAnimation() {
+		open.snap(1f);
+	}
+
+	protected boolean isClosing() {
+		return closing;
+	}
+
 	@Override
 	public final void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
+		if (debugMouseX >= 0) {
+			mouseX = debugMouseX;
+			mouseY = debugMouseY;
+		}
 		alpha = open.get();
 		if (closing && open.done()) {
 			closed();
@@ -53,20 +69,19 @@ public abstract class CleanScreen extends Screen {
 		pose.popMatrix();
 	}
 
-	/** Fade alpha of the open Clean UI screen, or 1 if none. Lets widgets fade without plumbing. */
-	public static float currentAlpha() {
-		return Minecraft.getInstance().gui.screen() instanceof CleanScreen s ? s.alpha : 1f;
+	/** Fade alpha of the open Clean UI screen (times the page alpha for body widgets), or 1 if none. */
+	public static float currentAlpha(boolean body) {
+		return Minecraft.getInstance().gui.screen() instanceof CleanScreen s ? s.alpha * (body ? s.bodyAlpha : 1f) : 1f;
 	}
 
-	/** Runs when the close animation ends: back to the parent, or close. */
+	/** Runs when the close animation ends. */
 	protected void closed() {
-		if (parent != null) minecraft.setScreenAndShow(parent);
-		else super.onClose();
+		super.onClose();
 	}
 
 	@Override
 	public void onClose() {
-		closing = true; // play the close animation; the actual close runs when it finishes
+		closing = true; // play the close animation; closed() runs when it finishes
 		open.target(0f);
 	}
 
