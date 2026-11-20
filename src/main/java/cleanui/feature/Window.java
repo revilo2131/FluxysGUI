@@ -23,19 +23,22 @@ import java.util.function.Supplier;
  */
 public abstract class Window extends CleanScreen {
 	public enum Tab {
-		OVERVIEW("Overview", Items.NETHER_STAR, OverviewScreen::new),
-		CALENDAR("Calendar", Items.CLOCK, CalendarScreen::new),
-		SKILLS("Skills", Items.DIAMOND_SWORD, null),   // opened by the server's /skills menu
-		STORAGE("Storage", Items.ENDER_CHEST, null);   // not built yet
+		OVERVIEW("Overview", Items.NETHER_STAR, OverviewScreen::new, null),
+		CALENDAR("Calendar", Items.CLOCK, CalendarScreen::new, null),
+		// these two run a Hypixel command once; the menu it opens is then shown as the page
+		SKILLS("Skills", Items.DIAMOND_SWORD, null, "skills"),
+		STORAGE("Storage", Items.ENDER_CHEST, null, "storage");
 
 		final String label;
 		final ItemStack item;
 		final Supplier<Screen> open;
+		final String command;
 
-		Tab(String label, net.minecraft.world.item.Item item, Supplier<Screen> open) {
+		Tab(String label, net.minecraft.world.item.Item item, Supplier<Screen> open, String command) {
 			this.label = label;
 			this.item = new ItemStack(item);
 			this.open = open;
+			this.command = command;
 		}
 	}
 
@@ -108,11 +111,10 @@ public abstract class Window extends CleanScreen {
 		int x = left() + Theme.PAD, y = top() + TABS_Y;
 		for (Tab t : Tab.values()) {
 			int w = font.width(t.label) + 15 + 14;
-			boolean available = t == tab || t.open != null || (t == Tab.SKILLS && CleanUi.onHypixel());
+			boolean available = t == tab || t.open != null || (t.command != null && CleanUi.onHypixel());
 			Button b = new Button(x, y, w, TAB_H, Component.literal(t.label), () -> switchTo(t)).item(t.item).tab(t == tab);
 			b.active = available;
-			if (!available)
-				b.tooltip(Component.literal(t == Tab.SKILLS ? "Only on Hypixel SkyBlock." : "Coming soon."));
+			if (!available) b.tooltip(Component.literal("Only on Hypixel SkyBlock."));
 			if (t == tab) selectedTab = b;
 			addRenderableWidget(b);
 			x += w + 2;
@@ -127,9 +129,9 @@ public abstract class Window extends CleanScreen {
 
 	private void switchTo(Tab t) {
 		if (t == tab) return;
-		if (t == Tab.SKILLS) {
-			// same as typing /skills once; our menu hook then shows the Skills page
-			minecraft.getConnection().sendCommand("skills");
+		if (t.command != null) {
+			// same as typing the command once; the menu hook then shows the page
+			minecraft.getConnection().sendCommand(t.command);
 			return;
 		}
 		leaving();

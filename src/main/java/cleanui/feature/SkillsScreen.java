@@ -4,19 +4,12 @@ import cleanui.skyblock.SkillParser;
 import cleanui.ui.Anim;
 import cleanui.ui.Button;
 import cleanui.ui.Theme;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.ContainerInput;
-import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.ItemLore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +27,7 @@ import java.util.Set;
  * hands back the original screen.
  * Layout: the main skills as large cards, the rest as a compact list beside them.
  */
-public final class SkillsScreen extends Window {
+public final class SkillsScreen extends MenuPage {
 	public static final String MENU_TITLE = "Your Skills";
 
 	/** Main skills (cards), in display order. */
@@ -55,11 +48,7 @@ public final class SkillsScreen extends Window {
 	private static final int TOP = 26; // below the summary bar
 	private static final int MAIN_W = 280, CARD_GAP = 8, CARD_H = 46;
 	private static final int LIST_X = MAIN_W + 10, LIST_W = BW - LIST_X, ROW_H = 20, ROW_STEP = 22, GROUP_GAP = 10;
-	private static final long FALLBACK_MS = 2500;
 	private static final Logger LOGGER = LoggerFactory.getLogger("cleanui");
-
-	/** The vanilla screen the user asked to see; the open hook leaves this one alone. */
-	public static Screen showingOriginal;
 
 	private record Entry(int menuSlot, ItemStack stack, SkillParser.Skill skill) {}
 
@@ -70,17 +59,14 @@ public final class SkillsScreen extends Window {
 		}
 	}
 
-	private final AbstractContainerScreen<?> original;
 	private final Map<Integer, Anim> hover = new HashMap<>(), bars = new HashMap<>();
 	private final Set<String> logged = new HashSet<>();
-	private final long openedAt = System.currentTimeMillis();
 	private List<Entry> entries = List.of();
 	private int dungeonSlot = -1;
 	private Button dungeons;
 
 	public SkillsScreen(AbstractContainerScreen<?> original) {
-		super(Tab.SKILLS);
-		this.original = original;
+		super(Tab.SKILLS, original);
 	}
 
 	@Override
@@ -91,47 +77,29 @@ public final class SkillsScreen extends Window {
 	@Override
 	protected void initBody() {
 		int right = bx() + BW;
-		addRenderableWidget(new Button(right - 86, by(), 86, 18, Component.literal("Original menu"), this::showOriginal)
-				.tooltip(Component.literal("Show Hypixel's own menu instead.")).body());
+		addRenderableWidget(originalMenuButton(right - 86, by()));
 		dungeons = addRenderableWidget(new Button(right - 86 - 6 - 92, by(), 92, 18, Component.literal("Dungeons"), this::openDungeons)
 				.item(new ItemStack(Items.SKELETON_SKULL)).color(Theme.color(3))
 				.tooltip(Component.literal("Your Catacombs and class levels.")).body());
-	}
-
-	private void showOriginal() {
-		showingOriginal = original;
-		minecraft.setScreenAndShow(original);
 	}
 
 	private void openDungeons() {
 		if (dungeonSlot >= 0) click(dungeonSlot, 0);
 	}
 
-	/** Exactly one normal click on that slot, same as clicking it in the chest. */
-	private void click(int menuSlot, int button) {
-		minecraft.gameMode.handleContainerInput(original.getMenu().containerId, menuSlot, button, ContainerInput.PICKUP, minecraft.player);
-	}
-
-	/** Reads every container slot (not the player inventory) and keeps the ones that parse as skills. */
+	/** Keeps the menu items that parse as skills; notes where the Dungeoneering link is. */
 	private List<Entry> read() {
-		AbstractContainerMenu menu = original.getMenu();
 		List<Entry> list = new ArrayList<>();
 		dungeonSlot = -1;
-		for (int i = 0; i < menu.slots.size(); i++) {
-			Slot slot = menu.slots.get(i);
-			if (slot.container == minecraft.player.getInventory()) continue;
-			ItemStack stack = slot.getItem();
-			if (stack.isEmpty()) continue;
-			String name = ChatFormatting.stripFormatting(stack.getHoverName().getString()).strip();
+		for (MenuItem item : menuItems()) {
+			String name = item.name();
 			if (name.equals(DUNGEON)) {
-				dungeonSlot = i; // no level in this menu's lore; it's just a link to the dungeon page
+				dungeonSlot = item.slot(); // no level in this menu's lore; it's just a link to the dungeon page
 				continue;
 			}
-			ItemLore lore = stack.get(DataComponents.LORE);
-			List<String> lines = new ArrayList<>();
-			if (lore != null) for (Component c : lore.lines()) lines.add(ChatFormatting.stripFormatting(c.getString()));
+			List<String> lines = item.lore();
 			SkillParser.Skill skill = SkillParser.parse(name, lines);
-			if (skill != null) list.add(new Entry(i, stack, skill));
+			if (skill != null) list.add(new Entry(item.slot(), item.stack(), skill));
 			else if (COLOR.containsKey(name.split(" ")[0]) && logged.add(name))
 				// a known skill that didn't parse: log its text once so the parser can be fixed
 				LOGGER.warn("[Clean UI] Skipped skill item '{}' with lore {}", name, lines);
@@ -183,10 +151,7 @@ public final class SkillsScreen extends Window {
 	protected void extractBody(GuiGraphicsExtractor g, int mouseX, int mouseY, float a) {
 		entries = read();
 		dungeons.active = dungeonSlot >= 0;
-		if (entries.isEmpty() && System.currentTimeMillis() - openedAt > FALLBACK_MS) {
-			showOriginal(); // couldn't read the menu: never leave the player stuck
-			return;
-		}
+		if (giveUpIfUnreadable(entries.isEmpty())) return;
 		int x = bx(), y = by();
 
 		// summary bar
@@ -296,15 +261,5 @@ public final class SkillsScreen extends Window {
 				return true;
 			}
 		return false;
-	}
-
-	@Override
-	protected void leaving() {
-		minecraft.player.closeContainer(); // closes the real menu on the server too
-	}
-
-	@Override
-	protected void closed() {
-		minecraft.player.closeContainer();
 	}
 }

@@ -1,0 +1,98 @@
+package cleanui.feature;
+
+import cleanui.ui.Button;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemLore;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * A page drawn in place of one of Hypixel's chest menus. The real menu stays open underneath:
+ * the page reads its items, and passes each click on as exactly one normal slot click.
+ * If the menu can't be read it hands back the original screen, so the player is never stuck.
+ */
+public abstract class MenuPage extends Window {
+	/** The vanilla screen the user asked to see; the menu hook leaves this one alone. */
+	public static Screen showingOriginal;
+
+	private static final long FALLBACK_MS = 2500;
+
+	protected final AbstractContainerScreen<?> original;
+	private final long openedAt = System.currentTimeMillis();
+
+	protected MenuPage(Tab tab, AbstractContainerScreen<?> original) {
+		super(tab);
+		this.original = original;
+	}
+
+	/** "Original menu" button: Hypixel's own menu instead of this page. */
+	protected Button originalMenuButton(int x, int y) {
+		return new Button(x, y, 86, 18, Component.literal("Original menu"), this::showOriginal)
+				.tooltip(Component.literal("Show Hypixel's own menu instead.")).body();
+	}
+
+	protected void showOriginal() {
+		showingOriginal = original;
+		minecraft.setScreenAndShow(original);
+	}
+
+	/**
+	 * Call once per frame with whether anything was read. After a while with nothing,
+	 * switches to the original menu and returns true (stop drawing).
+	 */
+	protected boolean giveUpIfUnreadable(boolean nothingRead) {
+		if (nothingRead && System.currentTimeMillis() - openedAt > FALLBACK_MS) {
+			showOriginal();
+			return true;
+		}
+		return false;
+	}
+
+	/** Exactly one normal click on that menu slot, same as clicking it in the chest. */
+	protected void click(int menuSlot, int button) {
+		minecraft.gameMode.handleContainerInput(original.getMenu().containerId, menuSlot, button, ContainerInput.PICKUP, minecraft.player);
+	}
+
+	/** The menu's own slots (not the player inventory), as (menu slot index, item) pairs. */
+	protected List<MenuItem> menuItems() {
+		List<MenuItem> list = new ArrayList<>();
+		List<Slot> slots = original.getMenu().slots;
+		for (int i = 0; i < slots.size(); i++) {
+			Slot slot = slots.get(i);
+			if (slot.container == minecraft.player.getInventory() || slot.getItem().isEmpty()) continue;
+			list.add(new MenuItem(i, slot.getItem()));
+		}
+		return list;
+	}
+
+	protected record MenuItem(int slot, ItemStack stack) {
+		String name() {
+			return ChatFormatting.stripFormatting(stack.getHoverName().getString()).strip();
+		}
+
+		List<String> lore() {
+			ItemLore lore = stack.get(DataComponents.LORE);
+			List<String> lines = new ArrayList<>();
+			if (lore != null) for (Component c : lore.lines()) lines.add(ChatFormatting.stripFormatting(c.getString()));
+			return lines;
+		}
+	}
+
+	@Override
+	protected void leaving() {
+		minecraft.player.closeContainer(); // closes the real menu on the server too
+	}
+
+	@Override
+	protected void closed() {
+		minecraft.player.closeContainer();
+	}
+}

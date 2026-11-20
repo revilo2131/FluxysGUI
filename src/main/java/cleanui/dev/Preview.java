@@ -1,8 +1,13 @@
 package cleanui.dev;
 
+import cleanui.data.StorageCache;
 import cleanui.feature.CalendarScreen;
 import cleanui.feature.OverviewScreen;
 import cleanui.feature.SkillsScreen;
+import cleanui.feature.StorageScreen;
+import cleanui.skyblock.StorageParser;
+import cleanui.skyblock.StorageParser.Kind;
+import cleanui.skyblock.StorageParser.PageId;
 import cleanui.ui.CleanScreen;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
@@ -19,6 +24,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemLore;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
@@ -38,7 +44,12 @@ public final class Preview {
 			new Shot("calendar", mc -> new CalendarScreen(), 300, 250),
 			new Shot("skills", Preview::fakeSkills, -1, -1),
 			new Shot("skills-card", Preview::fakeSkills, 450, 290),
-			new Shot("skills-row", Preview::fakeSkills, 600, 268));
+			new Shot("skills-row", Preview::fakeSkills, 600, 268),
+			new Shot("storage", Preview::fakeStorage, 380, 300),
+			new Shot("storage-item", Preview::fakeStorage, 548, 247),
+			// capture → save → reload from disk: page 3 must show 45 items with the nav row dropped
+			new Shot("capture", Preview::fakeEnderChestPage, -1, -1),
+			new Shot("storage-reloaded", Preview::storageAfterReload, -1, -1));
 	private static final int START = 80, EACH = 40;
 	private static int ticks;
 
@@ -92,6 +103,57 @@ public final class Preview {
 		put(c, 49, Items.BARRIER, "Close");
 		ChestMenu menu = ChestMenu.sixRows(0, mc.player.getInventory(), c);
 		return new SkillsScreen(new ContainerScreen(menu, mc.player.getInventory(), Component.literal(SkillsScreen.MENU_TITLE)));
+	}
+
+	/** Storage page over a fake "Storage" menu, with a few pages already remembered. */
+	private static Screen fakeStorage(Minecraft mc) {
+		long now = System.currentTimeMillis();
+		Item[] loot = {Items.DIAMOND, Items.IRON_SWORD, Items.ENCHANTED_BOOK, Items.GOLD_INGOT, Items.EMERALD_BLOCK,
+				Items.BOW, Items.ENDER_PEARL, Items.BLAZE_ROD, Items.PRISMARINE_SHARD, Items.NETHER_STAR, Items.COAL_BLOCK};
+		StorageCache.putForPreview(new PageId(Kind.ENDER_CHEST, 1), fakePage(45, 38, loot, 0), now - 12 * 60_000);
+		StorageCache.putForPreview(new PageId(Kind.ENDER_CHEST, 2), fakePage(45, 12, loot, 3), now - 3 * 3_600_000);
+		StorageCache.putForPreview(new PageId(Kind.BACKPACK, 1), fakePage(45, 27, loot, 5), now - 2 * 86_400_000);
+		return storageScreen(mc);
+	}
+
+	private static Screen storageScreen(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		for (int i = 1; i <= 9; i++)
+			if (i <= 5) put(c, 8 + i, Items.ENDER_CHEST, "Ender Chest Page " + i, "Click to open!");
+			else put(c, 8 + i, Items.GLASS_PANE, "Locked Page", "Unlock more pages!");
+		for (int i = 1; i <= 9; i++)
+			if (i <= 7) put(c, 26 + i, Items.PLAYER_HEAD, "Backpack Slot " + i, "Jumbo Backpack", "Click to open!");
+			else put(c, 26 + i, Items.GLASS_PANE, "Empty Backpack Slot " + i);
+		put(c, 49, Items.BARRIER, "Close");
+		ChestMenu menu = ChestMenu.sixRows(1, mc.player.getInventory(), c);
+		return new StorageScreen(new ContainerScreen(menu, mc.player.getInventory(), Component.literal(StorageParser.MENU_TITLE)));
+	}
+
+	/** A Hypixel-style "Ender Chest (3/9)" page: navigation row on top, then 45 item slots. */
+	private static Screen fakeEnderChestPage(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		for (int i = 0; i < 9; i++) put(c, i, Items.GLASS_PANE, " ");
+		put(c, 0, Items.ARROW, "Previous Page");
+		put(c, 8, Items.ARROW, "Next Page");
+		Item[] loot = {Items.REDSTONE, Items.LAPIS_LAZULI, Items.QUARTZ, Items.SLIME_BALL};
+		for (int i = 9; i < 54; i++) c.setItem(i, new ItemStack(loot[i % loot.length], i));
+		ChestMenu menu = ChestMenu.sixRows(2, mc.player.getInventory(), c);
+		return new ContainerScreen(menu, mc.player.getInventory(), Component.literal("Ender Chest (3/9)"));
+	}
+
+	private static Screen storageAfterReload(Minecraft mc) {
+		StorageCache.reloadForPreview();
+		StorageScreen.selectForPreview(new PageId(Kind.ENDER_CHEST, 3));
+		return storageScreen(mc);
+	}
+
+	private static List<ItemStack> fakePage(int size, int filled, Item[] loot, int seed) {
+		List<ItemStack> items = new ArrayList<>();
+		for (int i = 0; i < size; i++) {
+			boolean has = (i * 7 + seed) % size < filled;
+			items.add(has ? new ItemStack(loot[(i + seed) % loot.length], 1 + (i * 13 + seed) % 64 % (i % 3 == 0 ? 1 : 64)) : ItemStack.EMPTY);
+		}
+		return items;
 	}
 
 	private static void put(SimpleContainer c, int slot, Item item, String name, String... lore) {
