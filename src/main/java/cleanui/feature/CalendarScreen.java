@@ -1,5 +1,6 @@
 package cleanui.feature;
 
+import cleanui.data.Mayor;
 import cleanui.skyblock.Events;
 import cleanui.skyblock.SkyblockTime;
 import cleanui.ui.Anim;
@@ -7,7 +8,10 @@ import cleanui.ui.Button;
 import cleanui.ui.Theme;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -20,7 +24,8 @@ import java.util.Map;
 /**
  * SkyBlock calendar, shown in place of Hypixel's "Calendar and Events" menu: a browsable
  * month grid with event markers, this month's events, and a live list of active and
- * upcoming events. Everything is computed from the clock; the menu is only kept open
+ * upcoming events, plus the current mayor (from Hypixel's public election data). Events are
+ * computed from the clock; the menu is only kept open
  * so Back and "Original menu" work.
  */
 public final class CalendarScreen extends MenuPage {
@@ -38,12 +43,14 @@ public final class CalendarScreen extends MenuPage {
 			"Jacob's Contest", new ItemStack(Items.WHEAT));
 	private static final int COLS = 8, CELL = 24, STEP = CELL + 3;
 	private static final int GRID_W = COLS * STEP - 3; // 213
-	private static final int LIST_X = GRID_W + 14, ROW_STEP = 20, ROWS = 8;
+	private static final int LIST_X = GRID_W + 14, ROW_STEP = 20, ROWS = 4;
+	private static final int MAYOR_Y = 13 + ROWS * ROW_STEP + 3, MAYOR_H = 64, MODEL_W = 42;
 	private static final int NAV_Y = 0, GRID_Y = 20, MONTH_LINES = 3;
 	private static final int SLIDE = 16; // px a month page slides in from
 
 	private final Anim slide = new Anim(0f, 16f);
 	private int viewYear, viewMonth;
+	private MayorModel model;
 
 	public CalendarScreen(AbstractContainerScreen<?> original) {
 		super("Calendar", new ItemStack(Items.CLOCK), 1, original);
@@ -92,6 +99,56 @@ public final class CalendarScreen extends MenuPage {
 		List<Events.Occurrence> list = Events.upcoming(now);
 		for (int i = 0; i < Math.min(ROWS, list.size()); i++)
 			extractEventRow(g, font, list.get(i), now, lx, y + 13 + i * ROW_STEP, lw, a);
+		extractMayor(g, lx, y + MAYOR_Y, lw, mouseX, mouseY, a);
+	}
+
+	/** Current mayor: their 3D model, name and perk names; hover for the full perk text. */
+	private void extractMayor(GuiGraphicsExtractor g, int x, int y, int w, int mouseX, int mouseY, float a) {
+		Theme.divider(g, font, "MAYOR", x, y, w, a);
+		int cy = y + 12;
+		boolean over = mouseX >= x && mouseX < x + w && mouseY >= cy && mouseY < cy + MAYOR_H;
+		Theme.box(g, x, cy, w, MAYOR_H, over ? Theme.ROW_HOVER : Theme.ROW, a, over ? Theme.FRAME : Theme.LINE, a);
+		Mayor.Info m = Mayor.get();
+		if (m == null) {
+			g.text(font, Mayor.failed() ? "Couldn't load the mayor." : "Loading mayor...", x + 8, cy + 8, Theme.argb(Theme.TEXT_MUTED, a), true);
+			return;
+		}
+		Minecraft mc = Minecraft.getInstance();
+		if (m.skin() != null && mc.level != null && (model == null || !model.skin.equals(m.skin()))) model = new MayorModel(mc.level, m.skin());
+		// models can't fade, so it appears once the frame is mostly in
+		if (model != null && a > 0.5f)
+			InventoryScreen.extractEntityInInventoryFollowsMouse(g, x + 2, cy + 2, x + MODEL_W, cy + MAYOR_H - 2, 28, 0.0625f, mouseX, mouseY, model);
+
+		int tx = x + MODEL_W + 4, tw = w - MODEL_W - 10;
+		g.text(font, m.name(), tx, cy + 6, Theme.argb(Theme.TITLE, a), true);
+		int line = 0;
+		for (Mayor.Perk p : m.perks()) {
+			if (line == 3) break;
+			g.text(font, Theme.fit(font, "• " + p.name(), tw), tx, cy + 18 + line++ * 10, Theme.argb(Theme.ACCENT, a), true);
+		}
+		if (m.minister() != null)
+			Theme.textLeader(g, font, "Minister", Theme.TEXT_MUTED, m.minister(), Theme.TEXT, tx, cy + MAYOR_H - 12, tw, a);
+		if (over) g.setTooltipForNextFrame(font, perkTooltip(m), mouseX, mouseY, Theme.tooltipStyle());
+	}
+
+	/** "Mayor X", each perk in gold with its description wrapped, then the minister and their perk. */
+	private List<FormattedCharSequence> perkTooltip(Mayor.Info m) {
+		List<FormattedCharSequence> lines = new ArrayList<>();
+		lines.add(Component.literal("Mayor " + m.name()).withColor(Theme.TITLE).getVisualOrderText());
+		for (Mayor.Perk p : m.perks()) addPerk(lines, p);
+		if (m.ministerPerk() != null) {
+			lines.add(FormattedCharSequence.EMPTY);
+			lines.add(Component.literal("Minister " + m.minister()).withColor(Theme.TITLE).getVisualOrderText());
+			addPerk(lines, m.ministerPerk());
+		}
+		return lines;
+	}
+
+	private void addPerk(List<FormattedCharSequence> lines, Mayor.Perk p) {
+		lines.add(FormattedCharSequence.EMPTY);
+		lines.add(Component.literal(p.name()).withColor(0xFFAA00).getVisualOrderText());
+		// Hypixel's text carries § colors, which the font draws; §7 (gray) is its base color
+		lines.addAll(font.split(Component.literal("§7" + p.description()), 200));
 	}
 
 	private void extractGrid(GuiGraphicsExtractor g, int gx, int gy, int mouseX, int mouseY, SkyblockTime.Date today, float a) {

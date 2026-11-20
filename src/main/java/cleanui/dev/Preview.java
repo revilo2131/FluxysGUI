@@ -49,6 +49,7 @@ public final class Preview {
 			new Shot("overview-tile", Preview::fakeSkyBlockMenu, 339, 268),
 			new Shot("overview-hero", Preview::fakeSkyBlockMenu, 520, 192),
 			new Shot("calendar", Preview::fakeCalendar, 300, 232),
+			new Shot("calendar-mayor", Preview::fakeCalendar, 600, 300),
 			new Shot("skills", Preview::fakeSkills, -1, -1),
 			new Shot("skills-card", Preview::fakeSkills, 450, 272),
 			new Shot("skills-row", Preview::fakeSkills, 600, 250),
