@@ -1,5 +1,6 @@
 package cleanui.feature;
 
+import cleanui.CleanUi;
 import cleanui.ui.Button;
 import cleanui.ui.CleanScreen;
 import cleanui.ui.Theme;
@@ -14,7 +15,7 @@ import net.minecraft.world.item.Items;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.Predicate;
 
 /** Entry screen: one tile per feature, plus a profile card. Tiles turn active as features land. */
 public final class HubScreen extends CleanScreen {
@@ -25,13 +26,22 @@ public final class HubScreen extends CleanScreen {
 	private static final EquipmentSlot[] GEAR = {
 			EquipmentSlot.MAINHAND, EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
 
-	/** {@code open} builds the feature's screen with the hub as parent; null = not built yet. */
+	/**
+	 * {@code open} runs on click with the hub; returns false if the feature can't open right now.
+	 * null = not built yet.
+	 */
 	private record Feature(String name, ItemStack item, int color, String subtitle, String description,
-			Function<Screen, Screen> open) {}
+			Predicate<HubScreen> open) {}
 
 	private static final Feature[] FEATURES = {
-			new Feature("Calendar", new ItemStack(Items.CLOCK), 4, "Events", "SkyBlock dates, seasons and events.", CalendarScreen::new),
-			new Feature("Skills", new ItemStack(Items.DIAMOND_SWORD), 1, "Soon", "Skill levels and progress.", null),
+			new Feature("Calendar", new ItemStack(Items.CLOCK), 4, "Events", "SkyBlock dates, seasons and events.",
+					hub -> { hub.minecraft.setScreenAndShow(new CalendarScreen(hub)); return true; }),
+			new Feature("Skills", new ItemStack(Items.DIAMOND_SWORD), 1, "Levels", "Skill levels and progress. Opens /skills on Hypixel.",
+					hub -> {
+						if (!CleanUi.onHypixel()) return false;
+						hub.minecraft.getConnection().sendCommand("skills"); // same as typing /skills once
+						return true;
+					}),
 			new Feature("Storage", new ItemStack(Items.ENDER_CHEST), 0, "Soon", "Backpacks and ender chest pages you've opened.", null),
 	};
 
@@ -46,8 +56,10 @@ public final class HubScreen extends CleanScreen {
 		for (int i = 0; i < FEATURES.length; i++) {
 			Feature f = FEATURES[i];
 			boolean ready = f.open() != null;
-			Button tile = new Button(left + i * (tileW + GAP), y, tileW, TILE_H, Component.literal(f.name()),
-					() -> { if (ready) minecraft.setScreenAndShow(f.open().apply(this)); })
+			Button tile = new Button(left + i * (tileW + GAP), y, tileW, TILE_H, Component.literal(f.name()), () -> {
+				if (ready && !f.open().test(this))
+					minecraft.player.sendSystemMessage(Component.literal("[Clean UI] " + f.name() + " only works on Hypixel SkyBlock."));
+			})
 					.tile(f.item(), Component.literal(f.subtitle()))
 					.color(Theme.color(f.color()))
 					.tooltip(Component.literal(ready ? f.description() : f.description() + " Coming soon."));

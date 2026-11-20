@@ -83,6 +83,22 @@ public final class Theme {
 		g.fill(x, y + 11, x + font.width(text), y + 13, argb(ACCENT, a));
 	}
 
+	/**
+	 * Gold text with a bright band sweeping left to right, for maxed things.
+	 * Driven by the real clock, so it's the same speed at any FPS.
+	 */
+	public static void shimmer(GuiGraphicsExtractor g, net.minecraft.client.gui.Font font, String text, int x, int y, float a) {
+		double t = System.nanoTime() / 1e9;
+		int cx = x;
+		for (int i = 0; i < text.length(); i++) {
+			String c = String.valueOf(text.charAt(i));
+			double band = Math.sin(t * 4.0 - i * 0.45); // one wave crest travels along the text
+			float glow = (float) Math.max(0, band) * 0.75f;
+			g.text(font, c, cx, y, argb(mix(0xE8A317, 0xFFF4C2, glow), a), true);
+			cx += font.width(c);
+		}
+	}
+
 	/** Small right-pointing arrow (▸), 4×7 px. */
 	public static void arrow(GuiGraphicsExtractor g, int x, int y, int rgb, float a) {
 		for (int i = 0; i < 4; i++) g.fill(x + i, y + i, x + i + 1, y + 7 - i, argb(rgb, a));

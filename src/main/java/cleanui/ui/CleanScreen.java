@@ -37,8 +37,7 @@ public abstract class CleanScreen extends Screen {
 	public final void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
 		alpha = open.get();
 		if (closing && open.done()) {
-			if (parent != null) minecraft.setScreenAndShow(parent);
-			else super.onClose();
+			closed();
 			return;
 		}
 		float s = 0.94f + 0.06f * alpha; // subtle scale-in from 94%
@@ -57,6 +56,12 @@ public abstract class CleanScreen extends Screen {
 	/** Fade alpha of the open Clean UI screen, or 1 if none. Lets widgets fade without plumbing. */
 	public static float currentAlpha() {
 		return Minecraft.getInstance().gui.screen() instanceof CleanScreen s ? s.alpha : 1f;
+	}
+
+	/** Runs when the close animation ends: back to the parent, or close. */
+	protected void closed() {
+		if (parent != null) minecraft.setScreenAndShow(parent);
+		else super.onClose();
 	}
 
 	@Override
