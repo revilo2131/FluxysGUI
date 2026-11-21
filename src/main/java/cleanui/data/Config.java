@@ -18,6 +18,12 @@ public final class Config {
 	private static Config instance;
 
 	public String theme = "cyan";
+	/** Style knobs; picking a theme resets them to that theme's own (defaults = the original look). */
+	public String frame = "ORNATE";
+	public boolean rounded = false;
+	public boolean flatBars = false;
+	/** Off: no easing or sweeps, for anyone who prefers a still UI. */
+	public boolean motion = true;
 	/** Percent; the window still shrinks to fit small screens. */
 	public int uiScale = 100;
 

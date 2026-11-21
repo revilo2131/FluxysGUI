@@ -5,7 +5,8 @@
 	"client": [
 		"AbstractContainerScreenMixin",
 		"ContainerScreenMixin",
-		"GuiMixin"
+		"GuiMixin",
+		"TextShadowMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

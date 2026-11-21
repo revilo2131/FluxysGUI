@@ -24,6 +24,7 @@ public final class Anim {
 	}
 
 	public float get() {
+		if (!Theme.motion) return value = target; // Motion off (Settings): jump straight there
 		long now = System.nanoTime();
 		float dt = Math.min((now - last) / 1e9f, 0.1f); // clamp so a lag spike doesn't teleport
 		last = now;

@@ -82,6 +82,7 @@ public final class SlayerScreen extends MenuPage {
 
 	/** 0..1 eased entrance for the n-th element: each starts a little after the previous one. */
 	private float rise(int order) {
+		if (!Theme.motion) return 1f;
 		float p = Math.clamp((System.currentTimeMillis() - openedAt - order * STAGGER_MS) / (float) RISE_MS, 0f, 1f);
 		return 1f - (1f - p) * (1f - p) * (1f - p);
 	}
@@ -105,7 +106,7 @@ public final class SlayerScreen extends MenuPage {
 	/** Level pips: one per level, lit in the boss colour one after another as the page opens. */
 	private void pips(GuiGraphicsExtractor g, int x, int y, int w, int level, int max, int color, float h, float a) {
 		int pw = (w - (max - 1) * 3) / max;
-		float lit = level * Math.clamp((System.currentTimeMillis() - openedAt - 150) / (90f * Math.max(1, level)), 0f, 1f);
+		float lit = !Theme.motion ? level : level * Math.clamp((System.currentTimeMillis() - openedAt - 150) / (90f * Math.max(1, level)), 0f, 1f);
 		for (int i = 0; i < max; i++) {
 			int px = x + i * (pw + 3);
 			g.fill(px, y, px + pw, y + 5, Theme.argb(Theme.SLOT, a));

@@ -15,6 +15,7 @@ import cleanui.skyblock.StorageParser;
 import cleanui.skyblock.StorageParser.Kind;
 import cleanui.skyblock.StorageParser.PageId;
 import cleanui.ui.CleanScreen;
+import cleanui.ui.Theme;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
@@ -67,7 +68,12 @@ public final class Preview {
 			new Shot("bestiary", Preview::fakeBestiary, -1, -1),
 			new Shot("bestiary-hub", Preview::fakeBestiaryHub, -1, -1),
 			new Shot("pets", Preview::fakePets, -1, -1),
-			new Shot("settings", mc -> new SettingsScreen(fakeSkyBlockMenu(mc)), -1, -1),
+			new Shot("settings", mc -> themed("cyan", m -> new SettingsScreen(fakeSkyBlockMenu(m)), mc), -1, -1),
+			new Shot("theme-midnight", mc -> themed("midnight", Preview::fakeSlayer, mc), -1, -1),
+			new Shot("theme-neon", mc -> themed("neon", Preview::fakeLoadouts, mc), -1, -1),
+			new Shot("theme-glass", mc -> themed("glass", Preview::fakeSkyBlockMenu, mc), -1, -1),
+			new Shot("theme-parchment", mc -> themed("parchment", Preview::fakeSvenMenu, mc), 410, 260),
+			new Shot("theme-parchment-settings", mc -> themed("parchment", m -> new SettingsScreen(fakeSkyBlockMenu(m)), mc), -1, -1),
 			new Shot("wardrobe", Preview::fakeWardrobe, 380, 260),
 			new Shot("loadouts", Preview::fakeLoadouts, 700, 260),
 			new Shot("hotm", Preview::fakeHotm, -1, -1),
@@ -92,6 +98,14 @@ public final class Preview {
 
 	private Preview() {}
 
+	/** Opens {@code page} in the theme with this id, with that theme's own style. */
+	private static Screen themed(String id, Function<Minecraft, Screen> page, Minecraft mc) {
+		Theme.Preset p = Theme.byId(id);
+		Theme.applyPreset(id);
+		Theme.applyStyle(p.frameStyle().name(), p.rounded(), p.flatBars(), true);
+		return page.apply(mc);
+	}
+
 	public static void init() {
 		if (Boolean.getBoolean("cleanui.preview")) ClientTickEvents.END_CLIENT_TICK.register(Preview::tick);
 	}
@@ -115,6 +129,7 @@ public final class Preview {
 		if (phase == 0) {
 			CleanScreen.debugMouseX = s.mouseX();
 			CleanScreen.debugMouseY = s.mouseY();
+			themed("cyan", m -> null, mc); // every shot starts in the default theme; themed(...) shots switch it
 			mc.setScreenAndShow(s.screen().apply(mc));
 		}
 		if (phase == EACH - 5)

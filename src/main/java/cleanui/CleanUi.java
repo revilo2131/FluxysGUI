@@ -105,6 +105,7 @@ public final class CleanUi implements ClientModInitializer {
 			}
 		});
 		Theme.applyPreset(Config.get().theme);
+		Theme.applyStyle(Config.get().frame, Config.get().rounded, Config.get().flatBars, Config.get().motion);
 		StorageCache.init();
 		Preview.init(); // dev only; does nothing unless -Dcleanui.preview=true
 

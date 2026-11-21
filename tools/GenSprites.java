@@ -12,25 +12,34 @@ class GenSprites {
 	static final Path OUT = Path.of("src/main/resources/assets/cleanui/textures/gui/sprites/tooltip");
 	// Vanilla insets the tooltip box 8px into these 100×100 sprites (see vanilla tooltip/background.png).
 	static final int IN = 8, SIZE = 100;
-	static final int PANEL = 0x0C1524;
 	static final String[] ORNAMENT = {"XXXX.", "X....", "X.XX.", "X.X..", "....."};
-	/** id, frame, frame dim — keep in sync with Theme.PRESETS. */
+	/**
+	 * id, tooltip background, background alpha, frame, frame dim, frame style — keep in sync with
+	 * Theme.PRESETS. Tooltips stay dark in every theme (Parchment's is dark brown): Hypixel's lore
+	 * colors are made for a dark background.
+	 */
 	static final Object[][] PRESETS = {
-			{"cyan", 0x5ED6EA, 0x2C7488}, {"gold", 0xD9A441, 0x7A5A22}, {"amethyst", 0xB98CF5, 0x5E3E8C},
-			{"emerald", 0x5ED68A, 0x2C7A4E}, {"crimson", 0xF0606A, 0x7E2A33}};
+			{"cyan", 0x0C1524, 0.97f, 0x5ED6EA, 0x2C7488, "ORNATE"}, {"gold", 0x0C1524, 0.97f, 0xD9A441, 0x7A5A22, "ORNATE"},
+			{"amethyst", 0x0C1524, 0.97f, 0xB98CF5, 0x5E3E8C, "ORNATE"}, {"emerald", 0x0C1524, 0.97f, 0x5ED68A, 0x2C7A4E, "ORNATE"},
+			{"crimson", 0x0C1524, 0.97f, 0xF0606A, 0x7E2A33, "ORNATE"},
+			{"midnight", 0x0E0F13, 0.97f, 0xC9CEDB, 0x4A505E, "CLEAN"}, {"neon", 0x07060D, 0.97f, 0xFF3FD8, 0x7A1E6A, "BOLD"},
+			{"glass", 0x10202E, 0.85f, 0xBFE9FF, 0x4E7A96, "CLEAN"}, {"parchment", 0x2B2116, 0.97f, 0xB08E5E, 0x6E5B40, "ORNATE"}};
 
 	public static void main(String[] args) throws Exception {
 		for (Object[] p : PRESETS) {
-			String id = (String) p[0];
-			int frame = (int) p[1], dim = (int) p[2];
-			write("clean_" + id + "_background", (x, y) -> inside(x, y, IN) ? argb(PANEL, 0.97f) : 0, 9, false);
+			String id = (String) p[0], style = (String) p[5];
+			int panel = (int) p[1], frame = (int) p[3], dim = (int) p[4];
+			float alpha = (float) p[2];
+			write("clean_" + id + "_background", (x, y) -> inside(x, y, IN) ? argb(panel, alpha) : 0, 9, false);
 			// corners must hold the ornament (inset 11..15), so the frame's nine-slice border is 16
-			write("clean_" + id + "_frame", (x, y) -> frame(x, y, frame, dim), 16, true);
+			write("clean_" + id + "_frame", (x, y) -> frame(x, y, frame, dim, style), 16, true);
 		}
 	}
 
-	static int frame(int x, int y, int frame, int dim) {
+	static int frame(int x, int y, int frame, int dim, String style) {
 		if (inside(x, y, IN) && !inside(x, y, IN + 1)) return argb(frame, 1f);
+		if (style.equals("BOLD") && inside(x, y, IN + 1) && !inside(x, y, IN + 2)) return argb(frame, 1f);
+		if (!style.equals("ORNATE")) return 0;
 		if (inside(x, y, IN + 2) && !inside(x, y, IN + 3)) return argb(dim, 0.55f);
 		int ox = Math.min(x, SIZE - 1 - x) - (IN + 3), oy = Math.min(y, SIZE - 1 - y) - (IN + 3); // mirrored per corner
 		if (ox >= 0 && oy >= 0 && oy < ORNAMENT.length && ox < ORNAMENT[oy].length() && ORNAMENT[oy].charAt(ox) == 'X')
