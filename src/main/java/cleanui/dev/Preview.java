@@ -76,6 +76,9 @@ public final class Preview {
 			new Shot("leveling-tile", Preview::fakeLeveling, 340, 262),
 			new Shot("hotm-reset", Preview::fakeHotmReset, -1, -1),
 			new Shot("hotm-swap", Preview::fakeHotmSwap, -1, -1),
+			new Shot("slayer", Preview::fakeSlayer, -1, -1),
+			new Shot("slayer-hover", Preview::fakeSlayer, 420, 250),
+			new Shot("sven", Preview::fakeSvenMenu, -1, -1),
 			new Shot("stats", Preview::fakeStats, -1, -1),
 			new Shot("rng", Preview::fakeRngMeter, -1, -1),
 			new Shot("rng-hover", Preview::fakeRngMeter, 330, 232));
@@ -378,6 +381,44 @@ public final class Preview {
 		put(c, 48, Items.ARROW, "Go Back", "To SkyBlock Menu");
 		put(c, 50, Items.OAK_SIGN, "SkyBlock Levels in Chat", "View other players' SkyBlock Level.", "", "ENABLED", "", "Click to disable!");
 		return CleanUi.pageFor("SkyBlock Leveling", menu(mc, c, "SkyBlock Leveling"));
+	}
+
+	/** Guessed Maddox "Slayer" hub (not logged yet): one item per boss, plus extras. */
+	private static Screen fakeSlayer(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		Object[][] bosses = {{10, Items.ROTTEN_FLESH, "Revenant Horror", "Zombie", 9, "2,000,000/2M"},
+				{11, Items.COBWEB, "Tarantula Broodfather", "Spider", 7, "245,000/400,000"},
+				{12, Items.MUTTON, "Sven Packmaster", "Wolf", 8, "620,000/1M"},
+				{13, Items.ENDER_PEARL, "Voidgloom Seraph", "Enderman", 4, "12,400/20,000"},
+				{14, Items.BLAZE_POWDER, "Inferno Demonlord", "Blaze", 2, "820/1,500"},
+				{15, Items.REDSTONE, "Riftstalker Bloodfiend", "Vampire", 0, "0/20"}};
+		for (Object[] b : bosses) {
+			int lvl = (Integer) b[4];
+			put(c, (Integer) b[0], (Item) b[1], (String) b[2], "Slay this boss for rare drops.", "", b[3] + " Slayer: LVL " + lvl,
+					lvl >= 9 ? "Wolf Slayer XP: MAX" : "Progress: " + b[5] + " XP", "", "Click to view boss!");
+		}
+		put(c, 30, Items.COMPARATOR, "Auto-Slayer", "Automatically start your last quest.");
+		put(c, 31, Items.GOLDEN_APPLE, "Global Combat XP Buff", "Active: +5% Combat XP");
+		put(c, 32, Items.ENDER_EYE, "Slayer RNG Meters", "View your RNG meters.");
+		put(c, 49, Items.BARRIER, "Close");
+		return CleanUi.pageFor("Slayer", menu(mc, c, "Slayer"));
+	}
+
+	/** Guessed "Sven Packmaster" boss menu (title seen in the log, contents not): tiers I-IV, extras. */
+	private static Screen fakeSvenMenu(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		put(c, 4, Items.MUTTON, "Sven Packmaster", "Wolf Slayer: LVL 8", "Progress: 620,000/1M XP");
+		String[][] tiers = {{"500❤", "15/s", "5", "2,000"}, {"2,500❤", "40/s", "25", "7,500"}, {"10,000❤", "120/s", "100", "20,000"},
+				{"250,000❤", "300/s", "500", "50,000"}};
+		for (int i = 0; i < tiers.length; i++)
+			put(c, 11 + i, Items.MUTTON, "Sven Packmaster " + CollectionParser.roman(i + 1), "Smells like wet dog.", "", "Health: " + tiers[i][0],
+					"Damage: " + tiers[i][1], "Reward: " + tiers[i][2] + " Wolf Slayer XP", "Cost to start: " + tiers[i][3] + " coins", "", "Click to slay!");
+		put(c, 15, Items.MUTTON, "Sven Packmaster V", "Requires Wolf Slayer LVL 9", "", "Health: ???", "LOCKED");
+		put(c, 29, Items.GOLD_INGOT, "Boss Leveling Rewards", "View your rewards.");
+		put(c, 30, Items.CHEST, "Boss Drops", "View the drops.");
+		put(c, 31, Items.ENDER_EYE, "RNG Meter", "Sven Packmaster RNG Meter");
+		put(c, 48, Items.ARROW, "Go Back", "To Slayer");
+		return CleanUi.pageFor("Sven Packmaster", menu(mc, c, "Sven Packmaster"));
 	}
 
 	/** Guessed "Stats & Equipment" layout (not logged yet): armor + equipment columns, pet, stat items with § colours. */

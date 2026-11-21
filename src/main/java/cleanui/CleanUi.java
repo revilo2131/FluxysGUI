@@ -7,6 +7,7 @@ import cleanui.feature.DungeonScreen;
 import cleanui.feature.LevelingScreen;
 import cleanui.feature.ListPage;
 import cleanui.feature.RngMeterScreen;
+import cleanui.feature.SlayerScreen;
 import cleanui.feature.StatsScreen;
 import cleanui.feature.TrackScreen;
 import cleanui.feature.TreeScreen;
@@ -60,6 +61,8 @@ public final class CleanUi implements ClientModInitializer {
 	public static Screen pageFor(String title, AbstractContainerScreen<?> menu) {
 		Page exact = MENU_PAGES.get(title);
 		if (exact != null) return exact.enabled().test(Config.get()) ? exact.open().apply(menu) : null;
+		Screen slayer = SlayerScreen.forTitle(title, menu);
+		if (slayer != null) return slayer;
 		Screen stats = StatsScreen.forTitle(title, menu);
 		if (stats != null) return stats;
 		Screen rng = RngMeterScreen.forTitle(title, menu);
@@ -105,6 +108,9 @@ public final class CleanUi implements ClientModInitializer {
 		Screen from = Minecraft.getInstance().gui.screen();
 		if (Config.get().hotm && from instanceof TreeScreen tree)
 			return new SubMenuScreen(tree.getTitle().getString(), new ItemStack(Items.AMETHYST_CLUSTER), menu);
+		// a menu opened from a Slayer page (quest confirm, Drops, Leveling Rewards...) becomes a Slayer sub-page
+		if (from instanceof SlayerScreen slayer)
+			return new SubMenuScreen(slayer.getTitle().getString(), new ItemStack(Items.IRON_SWORD), menu);
 		if (from instanceof SubMenuScreen sub)
 			return new SubMenuScreen(sub.getTitle().getString(), new ItemStack(Items.AMETHYST_CLUSTER), menu);
 		if (SEEN_TITLES.add(title)) LOGGER.info("[Clean UI] Menu without a Clean UI page: '{}'", title);
