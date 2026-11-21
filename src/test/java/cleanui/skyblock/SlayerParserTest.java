@@ -35,6 +35,37 @@ class SlayerParserTest {
 		assertEquals(1f, maxed.percent());
 	}
 
+	/** Lore copied from the real menus (game log, 2026-11-21). */
+	@Test
+	void realMenus() {
+		var hub = SlayerParser.progress(List.of(" Undead", "", "Abhorrent Zombie stuck between", "life and death for an eternity.", "",
+				"Zombie Slayer: LVL 6", "", "Click to view boss!"));
+		assertEquals(6, hub.level());
+		assertFalse(hub.locked());
+		assertTrue(SlayerParser.progress(List.of(" Infernal", "", "Slay Voidgloom Seraph III!")).locked());
+		assertEquals("Only inside The Rift!", SlayerParser.requirement(List.of("A half-vampire,", "", "Only inside The Rift!")));
+
+		var leveling = SlayerParser.progress(List.of("Zombie Slayer LVL", "", "1. Kill boss to get XP", "2. Gain LVL from XP", "",
+				"Current LVL: 6", "", "Zombie Slayer XP to LVL 7:", "                     25,730/100k", "", "Click to view levels!"));
+		assertEquals(6, leveling.level());
+		assertEquals("25,730", leveling.done());
+		assertEquals(0.2573f, leveling.percent(), 1e-4);
+
+		var stats = SlayerParser.stats(List.of("Ultimate bragging rights", "", "Revenant Horror: 25,730 (Top 15.3%)", "Voidgloom Seraph: N/A"),
+				List.of("Highest slain tiers", "Revenant Horror: Tier IV", "Riftstalker Bloodfiend: No kills"));
+		var rev = stats.get(SlayerParser.boss("Revenant Horror"));
+		assertEquals("25,730", rev.xp());
+		assertEquals("Top 15.3%", rev.top());
+		assertEquals("Tier IV", rev.bestTier());
+		assertNull(stats.get(SlayerParser.boss("Voidgloom Seraph")));
+
+		var q = SlayerParser.quest(List.of("You have an active Slayer quest.", "", "Boss: Sven Packmaster IV", "Kill Wolves to spawn the boss!"));
+		assertEquals("Sven Packmaster IV", q.boss());
+		assertEquals("Kill Wolves to spawn the boss!", q.objective());
+		assertEquals(100_000, SlayerParser.boss("Revenant Horror").nextLevelXp(6));
+		assertEquals(-1, SlayerParser.boss("Revenant Horror").nextLevelXp(9));
+	}
+
 	@Test
 	void tiersAndDetails() {
 		assertEquals(3, SlayerParser.tier("Sven Packmaster III"));

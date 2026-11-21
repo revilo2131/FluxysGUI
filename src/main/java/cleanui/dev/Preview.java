@@ -228,7 +228,10 @@ public final class Preview {
 			put(c, path[i], item, "Combat Level " + r, lore.toArray(String[]::new));
 		}
 		put(c, 48, Items.ARROW, "Go Back");
-		put(c, 53, Items.ARROW, "Next Page");
+		put(c, 39, Items.WRITABLE_BOOK, "Bestiary", "The Bestiary is a compendium of", "mobs in SkyBlock.", "", "Families Found: 26.2%");
+		put(c, 41, Items.GOLDEN_SWORD, "Slayer", "Slayer Quests involve killing a large", "number of a certain mob.");
+		put(c, 45, Items.ARROW, "Scroll Left", "Left-click to scroll!");
+		put(c, 53, Items.ARROW, "Scroll Right", "Left-click to scroll!");
 		return CleanUi.pageFor("Combat Skill", menu(mc, c, "Combat Skill"));
 	}
 
@@ -383,42 +386,47 @@ public final class Preview {
 		return CleanUi.pageFor("SkyBlock Leveling", menu(mc, c, "SkyBlock Leveling"));
 	}
 
-	/** Guessed Maddox "Slayer" hub (not logged yet): one item per boss, plus extras. */
+	/** Real Maddox "Slayer" hub (game log, 2026-11-21), lore shortened. */
 	private static Screen fakeSlayer(Minecraft mc) {
 		SimpleContainer c = new SimpleContainer(54);
-		Object[][] bosses = {{10, Items.ROTTEN_FLESH, "Revenant Horror", "Zombie", 9, "2,000,000/2M"},
-				{11, Items.COBWEB, "Tarantula Broodfather", "Spider", 7, "245,000/400,000"},
-				{12, Items.MUTTON, "Sven Packmaster", "Wolf", 8, "620,000/1M"},
-				{13, Items.ENDER_PEARL, "Voidgloom Seraph", "Enderman", 4, "12,400/20,000"},
-				{14, Items.BLAZE_POWDER, "Inferno Demonlord", "Blaze", 2, "820/1,500"},
-				{15, Items.REDSTONE, "Riftstalker Bloodfiend", "Vampire", 0, "0/20"}};
-		for (Object[] b : bosses) {
-			int lvl = (Integer) b[4];
-			put(c, (Integer) b[0], (Item) b[1], (String) b[2], "Slay this boss for rare drops.", "", b[3] + " Slayer: LVL " + lvl,
-					lvl >= 9 ? "Wolf Slayer XP: MAX" : "Progress: " + b[5] + " XP", "", "Click to view boss!");
-		}
-		put(c, 30, Items.COMPARATOR, "Auto-Slayer", "Automatically start your last quest.");
-		put(c, 31, Items.GOLDEN_APPLE, "Global Combat XP Buff", "Active: +5% Combat XP");
-		put(c, 32, Items.ENDER_EYE, "Slayer RNG Meters", "View your RNG meters.");
-		put(c, 49, Items.BARRIER, "Close");
+		put(c, 10, Items.ROTTEN_FLESH, "☠ Revenant Horror", " Undead", "", "Abhorrent Zombie stuck between", "", "Zombie Slayer: LVL 6", "", "Click to view boss!");
+		put(c, 11, Items.COBWEB, "☠ Tarantula Broodfather", " Arthropod", "", "Monstrous Spider.", "", "Spider Slayer: LVL 6", "", "Click to view boss!");
+		put(c, 12, Items.MUTTON, "☠ Sven Packmaster", " Animal", "", "Rabid Wolf.", "", "Wolf Slayer: LVL 7", "", "Click to view boss!");
+		put(c, 13, Items.ENDER_PEARL, "☠ Voidgloom Seraph", " Ender", "", "A dark demigod.", "", "Enderman Slayer: LVL 2", "", "Click to view boss!");
+		put(c, 14, Items.REDSTONE, "☠ Riftstalker Bloodfiend", "A half-vampire, half-thrall.", "", "Only inside The Rift!");
+		put(c, 15, Items.BLAZE_POWDER, "☠ Inferno Demonlord", " Infernal", "", "Pure evil.", "", "Slay Voidgloom Seraph III!");
+		put(c, 16, Items.COAL_BLOCK, "Not released yet!", "This boss is still in development!");
+		put(c, 27, Items.ARROW, "Go Back", "To Combat Skill");
+		put(c, 28, Items.COMPARATOR, "Auto-Slayer", "Upon defeating a boss, automatically", "", "Currently: Enabled", "", "Click to disable!");
+		put(c, 29, Items.GOLD_INGOT, "Slayer Leaderboards", "Ultimate bragging rights", "", "Revenant Horror: 25,730 (Top 15.3%)",
+				"Tarantula Broodfather: 20,130 (Top 19.84%)", "Sven Packmaster: 100,130 (Top 11.11%)", "Voidgloom Seraph: N/A");
+		put(c, 31, Items.BARRIER, "Close");
+		put(c, 32, Items.EXPERIENCE_BOTTLE, "Global Combat Wisdom Buff", "Slayer Bonus", "", "Highest slain tiers", "Revenant Horror: Tier IV",
+				"Tarantula Broodfather: Tier IV", "Sven Packmaster: Tier IV", "Voidgloom Seraph: Tier II");
+		put(c, 33, Items.EMERALD, "Slayer Bonus Rewards", "Unlock bonuses by reaching a LVL", "on the first 3 bosses.", "", "✔ LVL 6", "Earn +3 of any boss's main token.");
+		put(c, 34, Items.CLOCK, "Ongoing Slayer Quest", "You have an active Slayer quest.", "", "Boss: Sven Packmaster IV", "Kill Wolves to spawn the boss!",
+				"", "Click to cancel the quest!");
+		put(c, 35, Items.ENDER_EYE, "Sven Packmaster RNG Meter", "Stored Slayer XP: 100,100", "", "Click to view!");
 		return CleanUi.pageFor("Slayer", menu(mc, c, "Slayer"));
 	}
 
-	/** Guessed "Sven Packmaster" boss menu (title seen in the log, contents not): tiers I-IV, extras. */
+	/** Real "Revenant Horror" boss menu (game log, 2026-11-21), lore shortened. */
 	private static Screen fakeSvenMenu(Minecraft mc) {
 		SimpleContainer c = new SimpleContainer(54);
-		put(c, 4, Items.MUTTON, "Sven Packmaster", "Wolf Slayer: LVL 8", "Progress: 620,000/1M XP");
-		String[][] tiers = {{"500❤", "15/s", "5", "2,000"}, {"2,500❤", "40/s", "25", "7,500"}, {"10,000❤", "120/s", "100", "20,000"},
-				{"250,000❤", "300/s", "500", "50,000"}};
+		String[][] tiers = {{"Beginner", "500❤", "15", "5"}, {"Strong", "20,000❤", "25", "25"}, {"Challenging", "400,000❤", "120", "100"},
+				{"Deadly", "1,500,000❤", "400", "500"}};
 		for (int i = 0; i < tiers.length; i++)
-			put(c, 11 + i, Items.MUTTON, "Sven Packmaster " + CollectionParser.roman(i + 1), "Smells like wet dog.", "", "Health: " + tiers[i][0],
-					"Damage: " + tiers[i][1], "Reward: " + tiers[i][2] + " Wolf Slayer XP", "Cost to start: " + tiers[i][3] + " coins", "", "Click to slay!");
-		put(c, 15, Items.MUTTON, "Sven Packmaster V", "Requires Wolf Slayer LVL 9", "", "Health: ???", "LOCKED");
-		put(c, 29, Items.GOLD_INGOT, "Boss Leveling Rewards", "View your rewards.");
-		put(c, 30, Items.CHEST, "Boss Drops", "View the drops.");
-		put(c, 31, Items.ENDER_EYE, "RNG Meter", "Sven Packmaster RNG Meter");
+			put(c, 11 + i, Items.ROTTEN_FLESH, "Revenant Horror " + CollectionParser.roman(i + 1), tiers[i][0], "", "Health: " + tiers[i][1],
+					"Damage: " + tiers[i][2] + " per second", "", "Life Drain", "Drains health every few seconds.", "",
+					"Reward: " + tiers[i][3] + " Zombie Slayer XP", "  + Boss drops", "", "You already have a Slayer Quest active!", "Cancel it first!");
+		put(c, 15, Items.ROTTEN_FLESH, "Revenant Horror V", "Excruciating", "", "Requires Revenant Horror Slayer 7");
+		put(c, 28, Items.GOLD_INGOT, "Boss Leveling Rewards", "Zombie Slayer LVL", "", "Current LVL: 6", "", "Zombie Slayer XP to LVL 7:",
+				"                     25,730/100k", "", "Click to view levels!");
+		put(c, 30, Items.GOLD_NUGGET, "Boss Drops", "Revenant Horror", "", "Click to view drops!");
+		put(c, 32, Items.BOOK, "Slayer Recipes", "Unlocked: 17 recipes", "", "Click to view recipes!");
+		put(c, 34, Items.ENDER_EYE, "Revenant Horror RNG Meter", "Stored Slayer XP: 25,700", "", "Click to view!");
 		put(c, 48, Items.ARROW, "Go Back", "To Slayer");
-		return CleanUi.pageFor("Sven Packmaster", menu(mc, c, "Sven Packmaster"));
+		return CleanUi.pageFor("Revenant Horror", menu(mc, c, "Revenant Horror"));
 	}
 
 	/** Guessed "Stats & Equipment" layout (not logged yet): armor + equipment columns, pet, stat items with § colours. */

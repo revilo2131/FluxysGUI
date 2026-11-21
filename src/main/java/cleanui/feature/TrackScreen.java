@@ -54,6 +54,9 @@ public final class TrackScreen extends MenuPage {
 	private Button prev, next;
 	private int prevSlot = -1, nextSlot = -1;
 	private MenuItem info;
+	/** Other buttons in the menu (Combat has Bestiary and Slayer), drawn left of the paging arrows. */
+	private final List<MenuItem> extras = new ArrayList<>();
+	private static final int EXTRA_W = 84;
 
 	private TrackScreen(String title, String crumb, Item icon, boolean collection, AbstractContainerScreen<?> original) {
 		super(title, new ItemStack(icon), 2, original);
@@ -96,16 +99,21 @@ public final class TrackScreen extends MenuPage {
 		logMenuOnce(items);
 		List<MenuItem> tiers = new ArrayList<>();
 		info = null;
+		extras.clear();
 		prevSlot = nextSlot = -1;
 		for (MenuItem item : items) {
 			String name = item.name();
 			String id = BuiltInRegistries.ITEM.getKey(item.stack().getItem()).toString();
 			// special reward levels (e.g. Combat XXV with Power Stones) are real items, not panes
 			boolean rewardItem = item.lore().stream().anyMatch(l -> l.startsWith("Reward")) || TrackParser.marksUnlocked(item.lore());
-			if (name.equals("Previous Page")) prevSlot = item.slot();
-			else if (name.equals("Next Page")) nextSlot = item.slot();
+			// skill menus page with "Scroll Left/Right", collections with "Previous/Next Page"
+			if (name.equals("Previous Page") || name.equals("Scroll Left")) prevSlot = item.slot();
+			else if (name.equals("Next Page") || name.equals("Scroll Right")) nextSlot = item.slot();
 			else if ((TrackParser.isPane(id) || rewardItem) && TrackParser.tier(name) != null) tiers.add(item);
-			else if (info == null && !name.isEmpty() && !NAV.contains(name) && !TrackParser.isPane(id)) info = item;
+			else if (name.isEmpty() || NAV.contains(name) || TrackParser.isPane(id)) continue;
+			// the skill/collection's own item ("Farming XXXI"); anything else (Bestiary, Slayer...) is a shortcut button
+			else if (info == null && name.startsWith(title.getString())) info = item;
+			else extras.add(item);
 		}
 		tiers.sort(Comparator.comparingInt(i -> TrackParser.tier(i.name()).tier()));
 		// skill menus say "UNLOCKED" / "Progress:" in the lore; otherwise the pane colour tells
@@ -178,9 +186,29 @@ public final class TrackScreen extends MenuPage {
 		}
 
 		extractNextRewards(g, nodes, x, y + TRACK_Y + rows(nodes) * ROW_STEP + 2, a);
+		MenuItem extraHovered = null;
+		for (int i = 0; i < extras.size(); i++) {
+			int ex = extraX(i);
+			if (ex < bx() + 100) break; // keep clear of the title on the left
+			boolean over = mouseX >= ex && mouseX < ex + EXTRA_W && mouseY >= y && mouseY < y + 18;
+			if (over) extraHovered = extras.get(i);
+			Anim hv = hover.computeIfAbsent(extras.get(i).slot(), k -> new Anim(0f, 18f));
+			hv.target(over ? 1f : 0f);
+			float h = hv.get();
+			Theme.box(g, ex, y, EXTRA_W, 18, Theme.mix(Theme.ROW, Theme.ROW_HOVER, h), a, Theme.mix(Theme.LINE, Theme.FRAME, 0.8f * h), a);
+			Theme.item(g, extras.get(i).stack(), ex + 4, y + 3, 12, a);
+			g.text(font, Theme.fit(font, extras.get(i).name(), EXTRA_W - 24), ex + 20, y + 5, Theme.argb(Theme.TEXT, a), true);
+		}
 		if (hovered != null) Theme.itemTooltip(g, hovered.item().stack(), mouseX, mouseY);
+		else if (extraHovered != null) Theme.itemTooltip(g, extraHovered.stack(), mouseX, mouseY);
 		else if (info != null && mouseX >= x && mouseX < x + BW && mouseY >= y + CARD_Y && mouseY < y + CARD_Y + CARD_H)
 			Theme.itemTooltip(g, info.stack(), mouseX, mouseY);
+	}
+
+	/** Shortcut buttons sit right to left, ending just before the paging arrows. */
+	private int extraX(int i) {
+		int arrowsLeft = bx() + BW - 86 - 6 - 22 - 4 - 22;
+		return arrowsLeft - 6 - (i + 1) * EXTRA_W - i * 4;
 	}
 
 	private int rows(List<Node> nodes) {
@@ -271,7 +299,16 @@ public final class TrackScreen extends MenuPage {
 
 	@Override
 	protected boolean clicked(MouseButtonEvent event, boolean doubleClick) {
-		// tiers are hover-only: clicking one does nothing (paging and Back still work)
-		return super.clicked(event, doubleClick);
+		if (super.clicked(event, doubleClick)) return true;
+		// shortcut buttons (Bestiary, Slayer) open Hypixel's menu; tiers stay hover-only
+		for (int i = 0; i < extras.size(); i++) {
+			int ex = extraX(i);
+			if (ex < bx() + 100) break;
+			if (event.x() >= ex && event.x() < ex + EXTRA_W && event.y() >= by() && event.y() < by() + 18) {
+				clickAs(extras.get(i).slot(), event);
+				return true;
+			}
+		}
+		return false;
 	}
 }
