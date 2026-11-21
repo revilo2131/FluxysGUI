@@ -26,6 +26,7 @@ import cleanui.skyblock.StorageParser;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
@@ -88,6 +89,12 @@ public final class CleanUi implements ClientModInitializer {
 		KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(ID, "main"));
 		KeyMapping open = KeyMappingHelper.registerKeyMapping(
 				new KeyMapping("key.cleanui.open", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, category));
+
+		// "You equipped Loadout 5!": the Loadouts page uses it to know which loadout you have on
+		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
+			String loadout = cleanui.skyblock.LoadoutParser.equipped(message.getString());
+			if (!overlay && loadout != null) LoadoutsScreen.equipped(loadout);
+		});
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			while (open.consumeClick()) {

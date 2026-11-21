@@ -13,7 +13,15 @@ public final class LoadoutParser {
 
 	private static final String[] PIECES = {"Helmet:", "Chestplate:", "Leggings:", "Boots:"};
 
+	private static final java.util.regex.Pattern EQUIPPED = java.util.regex.Pattern.compile("^You equipped (.+?)!$");
+
 	private LoadoutParser() {}
+
+	/** "You equipped Loadout 5!" (Hypixel's chat line after a switch) → "Loadout 5", else null. */
+	public static String equipped(String chatLine) {
+		var m = EQUIPPED.matcher(chatLine.strip());
+		return m.matches() && m.group(1).startsWith("Loadout") ? m.group(1) : null;
+	}
 
 	/** Null unless the lore lists armor pieces (so the menu's other items aren't loadouts). */
 	public static Loadout parse(List<String> lore) {

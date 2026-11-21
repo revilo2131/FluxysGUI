@@ -89,13 +89,6 @@ public abstract class MenuPage extends Window {
 		LOGGER.info(sb.toString());
 	}
 
-	/** Logs the menu now, regardless of earlier logs (e.g. to see how Hypixel changed it after a click). */
-	protected void logMenuNow(List<MenuItem> items, String note) {
-		StringBuilder sb = new StringBuilder("[Clean UI] Menu '" + original.getTitle().getString() + "' (" + note + "):");
-		for (MenuItem item : items) sb.append("\n  slot ").append(item.slot()).append(" '").append(item.name()).append("' ").append(item.lore());
-		LOGGER.info(sb.toString());
-	}
-
 	private static final java.util.Map<String, Long> FIRST_SEEN = new java.util.HashMap<>();
 
 	/**

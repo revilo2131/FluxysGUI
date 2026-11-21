@@ -39,11 +39,16 @@ public final class LoadoutsScreen extends MenuPage {
 	private final Map<Integer, Long> lastSeen = new HashMap<>(), pressedAt = new HashMap<>();
 	private final Map<Integer, SkinModel> models = new HashMap<>();
 	/**
-	 * The loadout you just picked: green straight away, since Hypixel may not update the menu's text
-	 * after equipping. Dropped as soon as the menu names a different loadout in use than before the click.
+	 * The loadout you have on, by name ("Loadout 5"). The menu's text often marks none as in use, but
+	 * Hypixel always says "You equipped Loadout 5!" in chat; set on click too, so the card turns
+	 * green at once and the chat line confirms or corrects it. Kept across menu reopens.
 	 */
-	private int pendingSlot = -1, activeAtClick = -1;
-	private long clickLogAt = -1;
+	private static volatile String equipped;
+
+	/** From the chat listener in CleanUi. */
+	public static void equipped(String loadoutName) {
+		equipped = loadoutName;
+	}
 	private final Map<Integer, Anim> hover = new HashMap<>();
 
 	/** What the menu holds, sorted by column. */
@@ -75,10 +80,6 @@ public final class LoadoutsScreen extends MenuPage {
 	private Layout layout() {
 		List<MenuItem> items = menuItems();
 		logMenuOnce(items);
-		if (clickLogAt > 0 && System.currentTimeMillis() >= clickLogAt) { // what Hypixel made of the click
-			clickLogAt = -1;
-			logMenuNow(items, "2s after a loadout click");
-		}
 		List<MenuItem> actions = new ArrayList<>(), equipment = new ArrayList<>(), armorItems = new ArrayList<>(), loadouts = new ArrayList<>();
 		ItemStack[] armor = {ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY};
 		MenuItem pet = null;
@@ -237,13 +238,13 @@ public final class LoadoutsScreen extends MenuPage {
 	/** Right: a card per loadout with you wearing it; green = active, blue = ready, grey = empty/locked. */
 	private ItemStack extractGrid(GuiGraphicsExtractor g, Layout l, int mouseX, int mouseY, float a) {
 		int rows = rows(l), cw = cardW(), ch = cardH(rows);
-		int menuActive = menuActive(l);
-		if (pendingSlot >= 0 && menuActive != activeAtClick) pendingSlot = -1; // Hypixel updated it: trust the menu again
+		// chat says which one you equipped; without that (fresh login) fall back to the menu's own text
+		String on = equipped;
 		ItemStack tooltip = null;
 		for (MenuItem lo : l.loadouts()) {
 			int idx = index(lo.slot());
 			int[] p = cardPos(idx, rows);
-			boolean active = pendingSlot >= 0 ? lo.slot() == pendingSlot : isActive(lo), usable = usable(lo);
+			boolean active = on != null ? lo.name().equals(on) : isActive(lo), usable = usable(lo);
 			int color = active ? ACTIVE : usable ? READY : EMPTY;
 			boolean over = mouseX >= p[0] && mouseX < p[0] + cw && mouseY >= p[1] && mouseY < p[1] + ch;
 			if (over) tooltip = lo.stack();
@@ -267,11 +268,6 @@ public final class LoadoutsScreen extends MenuPage {
 			g.text(font, name, x + (w - font.width(name)) / 2, y + h - 11, Theme.argb(active ? Theme.TITLE : usable ? Theme.TEXT : Theme.TEXT_MUTED, a), true);
 		}
 		return tooltip;
-	}
-
-	/** Slot of the loadout the menu's text says is in use, or -1. */
-	private static int menuActive(Layout l) {
-		return l.loadouts().stream().filter(LoadoutsScreen::isActive).mapToInt(MenuItem::slot).findFirst().orElse(-1);
 	}
 
 	/** 0 → 1 → 0 over {@link #PRESS_MS} after a card is clicked. */
@@ -311,11 +307,8 @@ public final class LoadoutsScreen extends MenuPage {
 			int[] p = cardPos(index(lo.slot()), rows);
 			if (mx >= p[0] && mx < p[0] + cardW() && my >= p[1] && my < p[1] + cardH(rows)) {
 				pressedAt.put(lo.slot(), System.currentTimeMillis());
-				if (event.button() == 0 && usable(lo) && !isActive(lo)) { // left-click equips (right-click edits)
-					activeAtClick = menuActive(l);
-					pendingSlot = lo.slot();
-				}
-				clickLogAt = System.currentTimeMillis() + 2000;
+				// left-click equips (right-click edits): green at once; Hypixel's chat line confirms or corrects it
+				if (event.button() == 0 && usable(lo)) equipped = lo.name();
 				clickAs(lo.slot(), event);
 				return true;
 			}

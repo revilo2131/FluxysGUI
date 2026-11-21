@@ -33,6 +33,14 @@ class LoadoutParserTest {
 	}
 
 	@Test
+	void equippedFromChat() {
+		assertEquals("Loadout 5", LoadoutParser.equipped("You equipped Loadout 5!")); // real chat line, game log 2026-11-21
+		assertEquals("Loadout 10", LoadoutParser.equipped("You equipped Loadout 10!"));
+		assertNull(LoadoutParser.equipped("You equipped Divan's Helmet!"));
+		assertNull(LoadoutParser.equipped("Guild > Someone: You equipped Loadout 5!"));
+	}
+
+	@Test
 	void lookupNames() {
 		assertEquals(List.of("Necrotic Wise Dragon Helmet", "Wise Dragon Helmet", "Dragon Helmet"), LoadoutParser.candidates("Necrotic Wise Dragon Helmet"));
 		assertEquals("Shadow Assassin Helmet", LoadoutParser.candidates("  Ancient Shadow Assassin Helmet").get(1));
