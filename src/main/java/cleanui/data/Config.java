@@ -62,7 +62,7 @@ public final class Config {
 	public boolean nucleusTracker = true;
 	/** Crystal found fly-in, placed toast, beams when the fifth goes in. */
 	public boolean nucleusAnimations = true;
-	/** Loot bundle on a reel, then the stats card. */
+	/** The run's most valuable drop pops up at the finale's climax (if it's worth ~750k+). */
 	public boolean nucleusLoot = true;
 	/** Tracker place: "LEFT", "RIGHT" or "TOP"; size in percent. */
 	public String nucleusTrackerPos = "LEFT";

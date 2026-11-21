@@ -90,6 +90,8 @@ public final class Preview {
 			new Shot("fin-gauntlet-build", mc -> finale("GAUNTLET", 16050), -1, -1),
 			new Shot("fin-gauntlet-late", mc -> finale("GAUNTLET", 17150), -1, -1),
 			new Shot("fin-gauntlet-climax", mc -> finale("GAUNTLET", 17700), -1, -1),
+			new Shot("fin-gauntlet-best", mc -> finale("GAUNTLET", 18950), -1, -1),
+			new Shot("fin-crown-best", mc -> finale("CROWN", 19400), -1, -1),
 			new Shot("fin-altar-place", mc -> finale("ALTAR", 12050), -1, -1),
 			new Shot("fin-altar-build", mc -> finale("ALTAR", 16050), -1, -1),
 			new Shot("fin-altar-late", mc -> finale("ALTAR", 17150), -1, -1),
@@ -111,8 +113,6 @@ public final class Preview {
 			new Shot("fin-golem-late", mc -> finale("GOLEM", 17150), -1, -1),
 			new Shot("fin-golem-climax", mc -> finale("GOLEM", 17700), -1, -1),
 
-			new Shot("nucleus-loot", mc -> nucleus(17600), -1, -1),
-			new Shot("nucleus-stats", mc -> nucleus(20750), -1, -1),
 			new Shot("lock-picking", mc -> lock(650, 0, 0), -1, -1),
 			new Shot("lock-fail", mc -> lock(1350, 2), -1, -1),
 			new Shot("lock-wisp-open", mc -> lock(3050, 0, 2), -1, -1),

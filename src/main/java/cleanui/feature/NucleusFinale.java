@@ -46,7 +46,7 @@ final class NucleusFinale {
 	static final String[] NAMES = {"Amber", "Amethyst", "Jade", "Sapphire", "Topaz"};
 	/** Each crystal's note (note block steps, 12 = F#4): together they make a chord. */
 	static final int[] NOTE = {12, 15, 19, 22, 24};
-	static final int LAND = 650, PLACE_MS = 2700, CLIMAX = 3400, FINALE_MS = 5400;
+	static final int LAND = 650, PLACE_MS = 2700, CLIMAX = 3400, FINALE_MS = 6800; // ~3 s after the climax for the best drop
 	private static final java.util.Random RNG = new java.util.Random();
 
 	private NucleusFinale() {}
@@ -106,8 +106,11 @@ final class NucleusFinale {
 		caption(g, font, text, sw / 2f, cy + 76 * u + 6, 1.4f, COLORS[newest], a);
 	}
 
-	/** The finale, {@code ft} ms in, big in the middle; {@code loot} bursts out at the climax. */
-	static void drawFinale(GuiGraphicsExtractor g, Style style, boolean[] placed, int last, long ft, List<ItemStack> loot, List<ItemStack> stones) {
+	/** The most valuable drop of the run, popped up at the climax: icon, name, "≈ 1.2M coins", rarity colour. */
+	record Best(ItemStack icon, String name, String value, int rgb, int tier) {}
+
+	/** The finale, {@code ft} ms in, big in the middle; {@code loot} bursts out at the climax and {@code best} (or null) pops up. */
+	static void drawFinale(GuiGraphicsExtractor g, Style style, boolean[] placed, int last, long ft, Best best, List<ItemStack> loot, List<ItemStack> stones) {
 		int sw = g.guiWidth(), sh = g.guiHeight();
 		float a = Math.min(1f, ft / 200f) * Math.min(1f, (FINALE_MS - ft) / 500f);
 		if (a <= 0) return;
@@ -127,6 +130,7 @@ final class NucleusFinale {
 		float titleA = a * Math.min(1f, ft / 400f) * (ft < CLIMAX ? 1f : Math.max(0f, 1 - (ft - CLIMAX) / 300f));
 		if (titleA > 0) caption(g, font, style.title, sw / 2f, 14, 1.6f, style.rgb, titleA);
 		if (ft >= CLIMAX) burst(s, style, loot.isEmpty() ? stones : loot);
+		if (ft >= CLIMAX && best != null) popup(s, best);
 	}
 
 	private static float unit(int sw, int sh) {
@@ -200,6 +204,43 @@ final class NucleusFinale {
 		float slam = 1 + Math.max(0f, 1 - t / 180f) * 1.6f;
 		float ca = a * Math.min(1f, (FINALE_MS - s.ft()) / 600f);
 		caption(g, s.font(), style.climax, sw / 2f, sh * 0.16f, 2.6f * slam, style.rgb, ca);
+	}
+
+	/**
+	 * The best drop, popped up in the middle once the flash clears: it spins in big over turning
+	 * rays in its rarity colour, then its name and value slam in under it.
+	 */
+	private static void popup(Scene s, Best best) {
+		GuiGraphicsExtractor g = s.g();
+		long t = s.after() - 250;
+		if (t < 0) return;
+		int sw = g.guiWidth(), sh = g.guiHeight();
+		float a = s.a() * Math.min(1f, t / 150f);
+		float x = sw / 2f, y = sh * 0.48f, u = s.u();
+		// backdrop, rays and halo in the drop's colour
+		glow(g, x, y + 14 * u, 46 * u, 0x000000, 1.6f * a); // dark enough to read over any scene
+		int rays = 10 + 4 * best.tier();
+		for (int k = 0; k < rays; k++) {
+			double an = k * Math.PI * 2 / rays + t / 1400.0;
+			float len = (40 + 20 * best.tier()) * u * ease(t / 400f);
+			line(g, x, y, x + (float) Math.cos(an) * len, y + (float) Math.sin(an) * len, 5 * u, argb(best.rgb(), 0.18f * a));
+		}
+		glow(g, x, y, 32 * u, best.rgb(), 0.6f * a);
+		float ringR = ease(t / 500f);
+		if (ringR < 1) ring(g, x, y, (10 + 60 * ringR) * u, 1.5f, best.rgb(), (1 - ringR) * a);
+		// the item: pops from nothing past full size and settles, spinning to face you
+		float pop = Math.min(1f, t / 350f);
+		float size = 4.2f * (pop < 1 ? pop * (1 + 0.35f * (float) Math.sin(pop * Math.PI)) : 1f);
+		float spin = (float) Math.cos(Math.max(0, 1 - t / 700f) * 7);
+		float bob = (float) Math.sin(t / 380.0) * 2;
+		ScathaSlots.item(g, best.icon(), x, y + bob, size * Math.max(0.15f, Math.abs(spin)), size);
+		// name and value
+		if (t > 450) {
+			long tt = t - 450;
+			float slam = 1 + Math.max(0f, 1 - tt / 160f) * 1.2f;
+			caption(g, s.font(), best.name(), x, y + 26 * u, 1.8f * slam, best.rgb(), a);
+			if (tt > 200) caption(g, s.font(), best.value(), x, y + 26 * u + 20, 1.3f, 0xFFE38A, a * Math.min(1f, (tt - 200) / 200f));
+		}
 	}
 
 	// ---- shared drawing helpers ----

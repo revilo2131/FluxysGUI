@@ -22,37 +22,34 @@ import java.util.Optional;
 
 /**
  * Crystal Nucleus runs, from chat: a crystal tracker with a run timer, a fly-in when you find a
- * crystal, a note + toast when you place one, beams converging when the fifth goes in, the loot
- * bundle revealed on a reel, then a stats card (time, splits, PB, profit). A new PB can bring in
- * the buff Scatha. All drawn on the HUD, so you keep playing. Settings: the Scatha page.
+ * crystal; each one placed drops into the run's finale ({@link NucleusFinale}), and the fifth sets it
+ * off, with the most valuable drop popping up at the climax. A new PB can bring in the buff Scatha.
+ * All drawn on the HUD, so you keep playing. Settings: the Nucleus page.
  */
 public final class NucleusRun {
 	private static final List<String> NAMES = NucleusParser.CRYSTALS;
 	private static final int[] COLORS = {0xFFAA00, 0xAA55FF, 0x55FF55, 0x55FFFF, 0xFFFF55};
 	/** Each crystal's note (note block steps, 12 = F#4): together they make a chord. */
 	private static final int[] NOTE = {12, 15, 19, 22, 24};
-	private static final int FLY_MS = 1600, BEAMS_MS = NucleusFinale.FINALE_MS; // the finale, then the loot
-	private static final int FIRST = 500, BIG_EACH = 1700, SPIN = 1300, SMALL_EACH = 90, STATS_MS = 7500;
+	private static final int FLY_MS = 1600, BEAMS_MS = NucleusFinale.FINALE_MS;
+	/** Loot worth at least this pops up at the climax (Jaderald, Divan fragments and up). */
+	static final double POPUP_MIN = 750_000;
 
 	private static final NucleusParser parser = new NucleusParser();
 	// the run
 	private static final boolean[] found = new boolean[5], placed = new boolean[5];
-	private static final long[] foundAt = new long[5];
 	private static long runStart = -1, runEnd = -1;
 	private static int foundCount, placedCount, sessionRuns;
-	private static String profit;
 	// animations (start times; -1 = not running)
 	private static int flyCrystal = -1, flyCount, lastPlaced = -1;
-	private static long flyStart, placeStart, beamsStart = -1, lootStart = -1;
+	private static long flyStart, placeStart, beamsStart = -1;
 	private static NucleusFinale.Style style; // this run's finale (picked at the first placement)
 	private static String forceStyle;         // preview: always this one
-	private static List<Loot> bigs = List.of(), smalls = List.of(), all = List.of();
-	private static List<String> extras = List.of();
+	private static List<Loot> all = List.of();
+	private static NucleusFinale.Best best; // the most valuable drop, picked at the climax (null = none worth a popup)
+	private static boolean bestPicked, pbDone;
 	private static long runTime = -1;
 	private static boolean pb;
-	// what the tick already played
-	private static int bigsDone, smallsDone, lastReelCell;
-	private static boolean statsDone;
 	// /nucleustest: chat lines to feed at these times
 	private record Fake(long at, String line, int color) {}
 	private static final List<Fake> test = new ArrayList<>();
@@ -107,7 +104,7 @@ public final class NucleusRun {
 		switch (e) {
 			case NucleusParser.Found f -> found(NAMES.indexOf(f.crystal()), f.count(), at);
 			case NucleusParser.Placed p -> placed(NAMES.indexOf(p.crystal()), at);
-			case NucleusParser.Profit p -> profit = p.amount();
+			case NucleusParser.Profit p -> {} // SkyHanni's profit line: not shown any more
 			case NucleusParser.Bundle b -> bundle(b, at);
 		}
 	}
@@ -118,8 +115,8 @@ public final class NucleusRun {
 		runStart = start;
 		runEnd = -1;
 		foundCount = placedCount = 0;
-		profit = null;
-		beamsStart = lootStart = -1;
+		beamsStart = -1;
+		all = List.of();
 		runTime = -1;
 		style = null;
 		lastPlaced = -1;
@@ -128,8 +125,9 @@ public final class NucleusRun {
 	private static void found(int i, int n, long at) {
 		if (i < 0) return;
 		if (n == 1 || runEnd >= 0) resetRun(n == 1 ? at : -1); // a new run; joined mid-run = no timer
+		SkyblockItems.id("Jaderald"); // start loading the item list and prices now, for the best-drop popup
+		cleanui.data.Networth.price("JADERALD");
 		found[i] = true;
-		foundAt[i] = at;
 		foundCount = n;
 		if (!Config.get().nucleusAnimations) return;
 		flyCrystal = i;
@@ -160,6 +158,8 @@ public final class NucleusRun {
 		runEnd = at;
 		if (style == null) style = NucleusFinale.pick(forceStyle != null ? forceStyle : Config.get().nucleusFinale);
 		beamsStart = Config.get().nucleusAnimations ? at : at - BEAMS_MS;
+		best = null;
+		bestPicked = pbDone = pb = false;
 		NucleusFinale.resetCues();
 	}
 
@@ -173,20 +173,32 @@ public final class NucleusRun {
 			Config.get().nucleusBestMs = runTime;
 			Config.get().save();
 		}
-		if (!Config.get().nucleusLoot) return; // the finale plays on; the next run's first crystal resets
 		all = b.items();
-		bigs = all.stream().filter(NucleusRun::big).toList();
-		smalls = all.stream().filter(l -> !big(l)).toList();
-		extras = b.extras();
-		lootStart = beamsStart + BEAMS_MS;
-		bigsDone = smallsDone = 0;
-		lastReelCell = -1;
-		statsDone = false;
+		for (Loot l : all) priceOf(l); // start the price lookups before the climax
 	}
 
-	/** The loot worth a spin: anything that isn't a Fine/Flawed gemstone. */
-	private static boolean big(Loot l) {
-		return !l.name().endsWith("Gemstone");
+	/** What a drop is worth (price × count), or 0 when not known (yet). */
+	private static double priceOf(Loot l) {
+		String id = SkyblockItems.id(l.name());
+		Double p = id == null ? null : cleanui.data.Networth.price(id);
+		return p == null ? 0 : p * l.count();
+	}
+
+	/** The single most valuable drop, if it's worth a popup. */
+	private static NucleusFinale.Best pickBest() {
+		Loot top = null;
+		double topValue = 0;
+		for (Loot l : all) {
+			double v = priceOf(l);
+			if (v > topValue) {
+				top = l;
+				topValue = v;
+			}
+		}
+		if (top == null || topValue < POPUP_MIN) return null;
+		String value = "≈ " + cleanui.skyblock.SkillParser.compact(String.valueOf(Math.round(topValue))) + " coins";
+		String name = top.name() + (top.count() > 1 ? " x" + top.count() : "");
+		return new NucleusFinale.Best(icon(top), name, value, top.color() >= 0 ? top.color() : 0xFFAA00, tierOf(top.color()));
 	}
 
 	private static int tierOf(int color) {
@@ -195,26 +207,6 @@ public final class NucleusRun {
 			case 0xAA00AA -> 1;           // epic
 			default -> 0;
 		};
-	}
-
-	// ---- timing ----
-
-	private static long smallStart() {
-		return lootStart + FIRST + (long) bigs.size() * BIG_EACH;
-	}
-
-	private static long statsAt() {
-		return smallStart() + (long) smalls.size() * SMALL_EACH + 500;
-	}
-
-	private static long lootEnd() {
-		return statsAt() + STATS_MS;
-	}
-
-	/** Reel position (cells) for big item k at time now: eases out onto cell 16. */
-	private static float reel(int k, long now) {
-		float s = Math.max(0f, Math.min(1f, (now - (lootStart + FIRST + (long) k * BIG_EACH)) / (float) SPIN));
-		return 16 * (1 - (1 - s) * (1 - s) * (1 - s));
 	}
 
 	public static void tick(Minecraft mc) {
@@ -227,38 +219,19 @@ public final class NucleusRun {
 			if (beamsStart >= 0 && now - beamsStart < BEAMS_MS) NucleusFinale.tickFinale(style, now - beamsStart);
 			else if (beamsStart < 0 && lastPlaced >= 0 && now - placeStart < NucleusFinale.PLACE_MS) NucleusFinale.tickPlace(style, lastPlaced, now - placeStart);
 		}
-		if (lootStart < 0) return;
-		// big items: ticks while the reel runs, then the landing with its rarity's confetti
-		while (bigsDone < bigs.size()) {
-			int k = bigsDone;
-			long land = lootStart + FIRST + (long) k * BIG_EACH + SPIN;
-			if (now >= lootStart + FIRST + (long) k * BIG_EACH && now < land) {
-				int cell = (int) reel(k, now);
-				if (cell != lastReelCell) ScathaSlots.play(SoundEvents.NOTE_BLOCK_HAT, 1.5f, 0.4f);
-				lastReelCell = cell;
-			}
-			if (now < land) break;
-			bigsDone++;
-			lastReelCell = -1;
-			ScathaSlots.play(SoundEvents.NOTE_BLOCK_BELL, 1.4f, 0.8f);
-			ScathaSlots.celebrateNow(tierOf(bigs.get(k).color()));
+		if (beamsStart < 0) return;
+		// the climax: the most valuable drop pops up (prices have had the whole finale to load)
+		// (item list / prices still loading: keep trying for a moment, then give up for this run)
+		if (!bestPicked && now - beamsStart >= NucleusFinale.CLIMAX) {
+			best = Config.get().nucleusLoot ? pickBest() : null;
+			bestPicked = best != null || now - beamsStart > NucleusFinale.CLIMAX + 1200;
+			if (best != null && Config.get().nucleusAnimations) ScathaSlots.sound(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.1f, 0.8f);
 		}
-		// the gemstones pop in quickly, rising
-		while (smallsDone < smalls.size() && now >= smallStart() + (long) smallsDone * SMALL_EACH) {
-			note(SoundEvents.NOTE_BLOCK_XYLOPHONE, Math.min(24, 6 + smallsDone), 0.4f);
-			smallsDone++;
-		}
-		if (!statsDone && now >= statsAt()) {
-			statsDone = true;
-			ScathaSlots.play(SoundEvents.NOTE_BLOCK_PLING, 1f, 0.7f);
-			if (pb) {
-				ScathaSlots.celebrateNow(2);
-				if (Config.get().nucleusPbWalkIn) ScathaSlots.walkInFor("NEW PB! " + time(runTime));
-			}
-		}
-		if (now > lootEnd()) {
-			lootStart = -1;
-			resetRun(-1);
+		// after the finale: a new PB gets its celebration
+		if (!pbDone && pb && now - beamsStart >= BEAMS_MS) {
+			pbDone = true;
+			ScathaSlots.celebrateNow(2);
+			if (Config.get().nucleusPbWalkIn) ScathaSlots.walkInFor("NEW PB! " + time(runTime));
 		}
 	}
 
@@ -267,13 +240,13 @@ public final class NucleusRun {
 	}
 
 	/**
-	 * The finale (beams, then loot and stats) is on: the HUD is swapped for it over a blurred world
+	 * The finale is on: the HUD is swapped for it over a blurred world
 	 * (HudMixin), with "Blur while rolling" on. Found/placed animations stay on the normal HUD.
 	 */
 	public static boolean takeover() {
 		if (!Config.get().nucleusFocus) return false;
 		long now = System.currentTimeMillis();
-		return (beamsStart >= 0 && Config.get().nucleusAnimations && now - beamsStart < BEAMS_MS) || lootStart >= 0;
+		return beamsStart >= 0 && Config.get().nucleusAnimations && now - beamsStart < BEAMS_MS;
 	}
 
 	// ---- drawing ----
@@ -289,10 +262,9 @@ public final class NucleusRun {
 			if (beamsStart >= 0 && style != null && now - beamsStart < BEAMS_MS) {
 				List<ItemStack> loot = all.stream().map(NucleusRun::icon).toList();
 				List<ItemStack> stones = java.util.stream.IntStream.range(0, 5).mapToObj(NucleusRun::crystal).toList();
-				NucleusFinale.drawFinale(g, style, placed, lastPlaced, now - beamsStart, lootStart >= 0 ? loot : List.of(), stones);
+				NucleusFinale.drawFinale(g, style, placed, lastPlaced, now - beamsStart, best, loot, stones);
 			}
 		}
-		if (lootStart >= 0 && now >= lootStart) drawLoot(g, font, now);
 	}
 
 	private static ItemStack crystal(int i) {
@@ -414,96 +386,6 @@ public final class NucleusRun {
 			g.text(font, count, -font.width(count) / 2, 0, alpha << 24 | 0xFFFFFF, true);
 			pose.popMatrix();
 		}
-	}
-
-	/** Loot panel (left of centre): reel for each big item, then the gemstones; stats card (right) after. */
-	private static void drawLoot(GuiGraphicsExtractor g, Font font, long now) {
-		int sw = g.guiWidth(), sh = g.guiHeight();
-		float fade = now > lootEnd() - 400 ? Math.max(0f, (lootEnd() - now) / 400f) : Math.min(1f, (now - lootStart) / 250f);
-		int pw = 210, px = sw / 2 - pw - 6, py = Math.max(8, sh / 2 - 110);
-		int rows = (smalls.size() + 7) / 8;
-		int ph = 34 + bigs.size() * 16 + 30 + rows * 20 + 14 + extras.size() * 10 + (profit != null ? 10 : 0);
-		Theme.box(g, px, py, pw, ph, Theme.PANEL, 0.92f * fade, 0xFF55FF, fade);
-		title(g, font, "NUCLEUS LOOT", px + pw / 2, py + 5, 0xFF55FF, fade);
-		int y = py + 18;
-		// the current big item's reel
-		int k = Math.min(bigsDone, bigs.size() - 1);
-		if (!bigs.isEmpty() && bigsDone < bigs.size()) {
-			drawReel(g, font, k, px + 5, y, pw - 10, now);
-		}
-		y += 28;
-		// big items revealed so far
-		for (int i = 0; i < bigsDone; i++) {
-			Loot l = bigs.get(i);
-			ScathaSlots.item(g, icon(l), px + 13, y + 6, 0.75f, 0.75f);
-			g.text(font, l.name() + (l.count() > 1 ? " x" + l.count() : ""), px + 24, y + 2, Theme.argb(l.color() >= 0 ? l.color() : 0xFFFFFF, fade), true);
-			y += 16;
-		}
-		// the gemstones, as a grid of icons with counts
-		for (int i = 0; i < smallsDone; i++) {
-			Loot l = smalls.get(i);
-			int gx = px + 6 + (i % 8) * 25, gy = y + 4 + (i / 8) * 20;
-			ScathaSlots.item(g, icon(l), gx + 9, gy + 8, 1f, 1f);
-			if (l.count() > 1) {
-				String c = String.valueOf(l.count());
-				g.text(font, c, gx + 18 - font.width(c), gy + 10, Theme.argb(l.color() >= 0 ? l.color() : 0xFFFFFF, fade), true);
-			}
-		}
-		y += 8 + rows * 20;
-		if (smallsDone == smalls.size()) {
-			for (String ex : extras) {
-				g.text(font, ex, px + 6, y, Theme.argb(0xAA00AA, fade), true);
-				y += 10;
-			}
-			if (profit != null) g.text(font, "Profit: " + profit, px + 6, y, Theme.argb(0xFFAA00, fade), true);
-		}
-		if (now >= statsAt()) drawStats(g, font, sw / 2 + 6, py, now, fade);
-	}
-
-	/** One big item spinning on a reel of the run's loot, easing onto the real item. */
-	private static void drawReel(GuiGraphicsExtractor g, Font font, int k, int x, int y, int w, long now) {
-		int h = 22;
-		Theme.box(g, x, y, w, h, 0x140E30, 1f, 0xFFC83D, 1f);
-		g.enableScissor(x + 1, y + 1, x + w - 1, y + h - 1);
-		float p = reel(k, now);
-		for (int c = (int) Math.floor(p) - 1; c <= (int) Math.floor(p) + 1; c++) {
-			Loot l = c == 16 ? bigs.get(k) : all.get(Math.floorMod(c * 5 + k * 3, all.size()));
-			int cy = y + Math.round((c - p) * h);
-			ScathaSlots.item(g, icon(l), x + 14, cy + h / 2f, 1f, 1f);
-			g.text(font, l.name(), x + 28, cy + 7, 0xFF000000 | (l.color() >= 0 ? l.color() : 0xFFFFFF), true);
-		}
-		g.disableScissor();
-	}
-
-	/** Run time, splits per crystal, PB (NEW PB! when beaten), runs this session, profit. */
-	private static void drawStats(GuiGraphicsExtractor g, Font font, int x, int y, long now, float fade) {
-		float in = Math.min(1f, (now - statsAt()) / 300f) * fade;
-		int w = 170, h = 34 + 5 * 11 + 40;
-		x += Math.round((1 - Math.min(1f, (now - statsAt()) / 300f)) * 30);
-		Theme.box(g, x, y, w, h, Theme.PANEL, 0.92f * in, pb ? 0xFFAA00 : Theme.LINE, in);
-		title(g, font, pb ? "NEW PB!" : "RUN COMPLETE", x + w / 2, y + 5, pb ? 0xFFAA00 : 0x55FF55, in);
-		int ly = y + 20;
-		Theme.textLeader(g, font, "Time", Theme.TEXT_MUTED, runTime > 0 ? time(runTime) : "--", 0xFFFFFF, x + 6, ly, w - 12, in);
-		ly += 14;
-		// splits in the order found
-		Integer[] order = {0, 1, 2, 3, 4};
-		java.util.Arrays.sort(order, (a, b) -> Long.compare(found[a] ? foundAt[a] : Long.MAX_VALUE, found[b] ? foundAt[b] : Long.MAX_VALUE));
-		for (int i : order) {
-			String split = found[i] && runStart >= 0 ? "+" + time(foundAt[i] - runStart) : "--";
-			Theme.textLeader(g, font, NAMES.get(i), COLORS[i], split, 0xDDDDDD, x + 6, ly, w - 12, in);
-			ly += 11;
-		}
-		ly += 4;
-		long best = Config.get().nucleusBestMs;
-		Theme.textLeader(g, font, "PB", Theme.TEXT_MUTED, best > 0 ? time(best) : "--", 0xFFAA00, x + 6, ly, w - 12, in);
-		ly += 11;
-		Theme.textLeader(g, font, "Runs this session", Theme.TEXT_MUTED, String.valueOf(sessionRuns), 0xFFFFFF, x + 6, ly, w - 12, in);
-		ly += 11;
-		if (profit != null) Theme.textLeader(g, font, "Profit", Theme.TEXT_MUTED, profit, 0xFFAA00, x + 6, ly, w - 12, in);
-	}
-
-	private static void title(GuiGraphicsExtractor g, Font font, String text, int cx, int y, int rgb, float a) {
-		g.text(font, text, cx - font.width(text) / 2, y, Theme.argb(rgb, a), true);
 	}
 
 	static int sessionRuns() {

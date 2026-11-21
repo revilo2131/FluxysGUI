@@ -56,7 +56,7 @@ public final class NucleusSettingsScreen extends Window {
 							+ "Golem: it wakes up and slams the ground. Random: a different one each run. Click to change.",
 					c -> c.nucleusFinale.equals("RANDOM") ? "Random" : NucleusFinale.pick(c.nucleusFinale).label,
 					c -> c.nucleusFinale = FINALES[(indexOf(FINALES, c.nucleusFinale) + 1) % FINALES.length]),
-			Row.toggle("Loot reveal + stats", "The loot bundle spun out on a reel, then a card with your time, splits, PB and profit.",
+			Row.toggle("Best drop popup", "At the climax your most valuable drop (worth ~750k or more: Jaderald, Divan fragments, Alloy, Quick Claw, dyes...) pops up with its value. Only the best one.",
 					c -> c.nucleusLoot, c -> c.nucleusLoot = !c.nucleusLoot),
 			Row.toggle("Blur finale", "During the beams, loot and stats: blur the world and hide the rest of the HUD. You can still walk.",
 					c -> c.nucleusFocus, c -> c.nucleusFocus = !c.nucleusFocus),

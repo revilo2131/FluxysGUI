@@ -38,7 +38,7 @@ public final class SkyblockItems {
 	private static final String ITEMS = "https://api.hypixel.net/v2/resources/skyblock/items";
 
 	/** Just what's needed to build the item: 1.8 material name, leather "r,g,b", head texture value, Hypixel resource-pack model. */
-	private record Spec(String material, String color, String skin, String model) {}
+	private record Spec(String material, String color, String skin, String model, String id) {}
 
 	private static volatile Map<String, Spec> specs;
 	private static volatile boolean loading;
@@ -70,6 +70,20 @@ public final class SkyblockItems {
 		return built.isEmpty() ? null : built;
 	}
 
+	/** The Hypixel item id for a display name ("Divan's Alloy" → DIVAN_ALLOY), or null while loading / unknown. */
+	public static String id(String displayName) {
+		Map<String, Spec> s = specs;
+		if (s == null) {
+			load();
+			return null;
+		}
+		for (String name : LoadoutParser.candidates(displayName)) {
+			Spec spec = s.get(name.toLowerCase(Locale.ROOT));
+			if (spec != null) return spec.id();
+		}
+		return null;
+	}
+
 	private static synchronized void load() {
 		if (loading || specs != null) return;
 		loading = true;
@@ -93,7 +107,7 @@ public final class SkyblockItems {
 					}
 					map.putIfAbsent(o.get("name").getAsString().toLowerCase(Locale.ROOT),
 							new Spec(o.get("material").getAsString(), o.has("color") ? o.get("color").getAsString() : null, skin,
-									o.has("item_model") ? o.get("item_model").getAsString() : null));
+									o.has("item_model") ? o.get("item_model").getAsString() : null, o.has("id") ? o.get("id").getAsString() : null));
 				}
 				specs = map;
 			} catch (Exception ignored) {
