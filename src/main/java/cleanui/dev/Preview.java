@@ -68,7 +68,7 @@ public final class Preview {
 			new Shot("bestiary-hub", Preview::fakeBestiaryHub, -1, -1),
 			new Shot("pets", Preview::fakePets, -1, -1),
 			new Shot("settings", mc -> new SettingsScreen(fakeSkyBlockMenu(mc)), -1, -1),
-			new Shot("restyled", Preview::fakeWardrobe, -1, -1),
+			new Shot("wardrobe", Preview::fakeWardrobe, 380, 260),
 			new Shot("hotm", Preview::fakeHotm, -1, -1),
 			new Shot("hotm-hover", Preview::fakeHotm, 470, 355),
 			new Shot("dungeons", Preview::fakeDungeons, -1, -1),
@@ -304,10 +304,15 @@ public final class Preview {
 				{Items.GOLDEN_HELMET, Items.GOLDEN_CHESTPLATE, Items.GOLDEN_LEGGINGS, Items.GOLDEN_BOOTS}};
 		for (int s = 0; s < sets.length; s++)
 			for (int piece = 0; piece < 4; piece++) c.setItem(piece * 9 + s, new ItemStack(sets[s][piece]));
-		for (int s = 0; s < 9; s++) put(c, 36 + s, pane(s < 3 ? DyeColor.LIME : DyeColor.GRAY), "Slot " + (s + 1), s < 3 ? "Click to equip!" : "Empty");
+		for (int s = 0; s < 9; s++) {
+			String st = s == 1 ? "Equipped" : s < 3 ? "Ready" : s < 7 ? "Empty" : "Locked";
+			put(c, 36 + s, pane(s == 1 ? DyeColor.LIME : s < 3 ? DyeColor.PINK : s < 7 ? DyeColor.GRAY : DyeColor.RED), "Slot " + (s + 1) + ": " + st,
+					s < 3 ? "Click to equip!" : st);
+		}
+		put(c, 53, Items.ARROW, "Next Page");
 		put(c, 48, Items.ARROW, "Go Back");
 		put(c, 49, Items.BARRIER, "Close");
-		return menu(mc, c, "Wardrobe (1/2)");
+		return CleanUi.pageFor("Wardrobe (1/2)", menu(mc, c, "Wardrobe (1/2)"));
 	}
 
 	/** Heart of the Mountain, tiers 7 (top) to 2: tier labels in column 0, perks in a tree, scroll arrows. */
@@ -474,6 +479,8 @@ public final class Preview {
 		put(c, 48, Items.ARROW, "Go Back", "To Heart of the Mountain");
 		put(c, 50, Items.OAK_SIGN, "Search", "Find drops by name!", "", "Click to search!");
 		put(c, 51, Items.LEVER, "Reset RNG Drop", "Resets the selected drop.", "", "Selected Drop", "Divan's Alloy", "", "Click to reset!");
+		put(c, 31, pane(DyeColor.GRAY), "???", "Requires HOTM 7!");
+		put(c, 32, pane(DyeColor.GRAY), "???", "Requires HOTM 7!");
 		return CleanUi.pageFor("Crystal Nucleus RNG Meter", menu(mc, c, "Crystal Nucleus RNG Meter"));
 	}
 

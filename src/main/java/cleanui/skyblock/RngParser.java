@@ -13,6 +13,8 @@ public final class RngParser {
 	private static final Pattern ODDS = Pattern.compile("Odds: (.+?) \\((.+)\\)");
 	private static final Pattern XP = Pattern.compile("XP: ([\\d,.]+[kKmMbB]?)\\s*/\\s*([\\d,.]+[kKmMbB]?)");
 	private static final Pattern PER_RUN = Pattern.compile("with ([\\d,.]+[kKmM]?) [A-Za-z ]*XP");
+	/** Rarity name for drops that are still locked; their "chance" holds the requirement text. */
+	public static final String LOCKED = "Locked";
 	private static final List<String> ORDER = List.of("Common", "Uncommon", "Rare", "Extraordinary", "Pray RNGesus", "RNGesus Incarnate");
 	/** Hypixel's colours for the odds names. */
 	private static final Map<String, Integer> RARITY = Map.of("Common", 0xFFFFFF, "Uncommon", 0x55FF55, "Rare", 0x5555FF,
@@ -35,7 +37,11 @@ public final class RngParser {
 				total = m.group(2);
 			}
 		}
-		if (rarity == null) return null;
+		if (rarity == null) {
+			// "???" drops you haven't unlocked: no odds, just "Requires Zombie Slayer 7!"
+			String req = lore.stream().map(String::strip).filter(l -> l.startsWith("Requires")).findFirst().orElse(null);
+			return req != null ? new Drop(LOCKED, req, 0f, null, null, false) : null;
+		}
 		boolean selected = lore.stream().anyMatch(l -> l.strip().equals("SELECTED"));
 		TrackParser.Progress p = TrackParser.progress(lore); // the selected drop: "Progress: 5%" + "50,000/1M"
 		if (p != null && p.done() != null) {

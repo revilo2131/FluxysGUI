@@ -50,7 +50,7 @@ public final class CalendarScreen extends MenuPage {
 
 	private final Anim slide = new Anim(0f, 16f);
 	private int viewYear, viewMonth;
-	private MayorModel model;
+	private SkinModel model;
 
 	public CalendarScreen(AbstractContainerScreen<?> original) {
 		super("Calendar", new ItemStack(Items.CLOCK), 1, original);
@@ -114,7 +114,7 @@ public final class CalendarScreen extends MenuPage {
 			return;
 		}
 		Minecraft mc = Minecraft.getInstance();
-		if (m.skin() != null && mc.level != null && (model == null || !model.skin.equals(m.skin()))) model = new MayorModel(mc.level, m.skin());
+		if (m.skin() != null && mc.level != null && (model == null || !model.skin.equals(m.skin()))) model = new SkinModel(mc.level, m.skin());
 		// models can't fade, so it appears once the frame is mostly in
 		if (model != null && a > 0.5f)
 			InventoryScreen.extractEntityInInventoryFollowsMouse(g, x + 2, cy + 2, x + MODEL_W, cy + MAYOR_H - 2, 28, 0.0625f, mouseX, mouseY, model);

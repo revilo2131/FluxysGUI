@@ -23,6 +23,13 @@ class RngParserTest {
 		assertTrue(alloy.selected());
 
 		assertNull(RngParser.drop(List.of("Find drops by name!")));
+		// real "???" entry from the Revenant Horror RNG Meter (game log, 2026-11-21)
+		var locked = RngParser.drop(List.of("Requires Zombie Slayer 7!"));
+		assertEquals(RngParser.LOCKED, locked.rarity());
+		assertEquals("Requires Zombie Slayer 7!", locked.chance());
+		assertTrue(RngParser.rank("RNGesus Incarnate") < RngParser.rank(RngParser.LOCKED));
+		// real slayer drop: "Slayer XP: 25,700/5,000" fills the meter
+		assertEquals(1f, RngParser.drop(List.of("Minimum: Tier II", "Odds: Rare (10%)", "", "Slayer XP: 25,700/5,000")).fill());
 		assertEquals(0xFF5555, RngParser.color("RNGesus Incarnate"));
 		assertTrue(RngParser.rank("Rare") < RngParser.rank("Pray RNGesus"));
 		assertTrue(RngParser.rank("Pray RNGesus") < RngParser.rank("Something New"));

@@ -12,6 +12,7 @@ import cleanui.feature.StatsScreen;
 import cleanui.feature.TrackScreen;
 import cleanui.feature.TreeScreen;
 import cleanui.feature.SubMenuScreen;
+import cleanui.feature.WardrobeScreen;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import cleanui.data.Config;
@@ -61,6 +62,8 @@ public final class CleanUi implements ClientModInitializer {
 	public static Screen pageFor(String title, AbstractContainerScreen<?> menu) {
 		Page exact = MENU_PAGES.get(title);
 		if (exact != null) return exact.enabled().test(Config.get()) ? exact.open().apply(menu) : null;
+		Screen wardrobe = WardrobeScreen.forTitle(title, menu);
+		if (wardrobe != null) return wardrobe;
 		Screen slayer = SlayerScreen.forTitle(title, menu);
 		if (slayer != null) return slayer;
 		Screen stats = StatsScreen.forTitle(title, menu);

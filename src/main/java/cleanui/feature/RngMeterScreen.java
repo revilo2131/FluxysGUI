@@ -219,6 +219,10 @@ public final class RngMeterScreen extends MenuPage {
 		Theme.item(g, r.item().stack(), x + 7, y + 4, Math.round(16 + 2 * h), a);
 		int tx = x + 28, right = x + w - 6;
 		g.text(font, Theme.fit(font, r.item().name(), right - tx), tx, y + 4, Theme.argb(d.selected() ? Theme.TITLE : Theme.TEXT, a), true);
+		if (d.rarity().equals(RngParser.LOCKED)) { // "???": just say what unlocks it
+			g.text(font, Theme.fit(font, d.chance(), right - tx), tx, y + 14, Theme.argb(Theme.TEXT_MUTED, a), true);
+			return;
+		}
 		g.text(font, d.chance(), tx, y + 14, Theme.argb(bright(color), a), true);
 		String status = d.selected() ? "SELECTED" : d.fill() >= 1f ? "FULL" : Math.round(d.fill() * 100) + "%";
 		int statusColor = d.selected() ? Theme.FRAME : d.fill() >= 1f ? Theme.ACCENT : Theme.TEXT_MUTED;
