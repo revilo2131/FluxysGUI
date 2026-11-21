@@ -27,6 +27,7 @@ public final class NucleusSettingsScreen extends Window {
 	private static final int COL_W = 200, RIGHT_X = 214, ROW_H = SettingsScreen.ROW_H, ROW_STEP = SettingsScreen.ROW_STEP;
 	private static final String[] POSITIONS = {"LEFT", "RIGHT", "TOP"};
 	private static final int[] SIZES = {75, 100, 125, 150};
+	private static final String[] FINALES = {"RANDOM", "GAUNTLET", "ALTAR", "REACTOR", "CONSTELLATION", "CROWN", "GOLEM"};
 
 	/** A switch (on != null) or a value you click through (value != null). */
 	private record Row(String label, String tip, Predicate<Config> on, Consumer<Config> flip, Function<Config, String> value) {
@@ -48,8 +49,13 @@ public final class NucleusSettingsScreen extends Window {
 					c -> c.nucleusTrackerScale + "%", c -> c.nucleusTrackerScale = SIZES[(indexOf(SIZES, c.nucleusTrackerScale) + 1) % SIZES.length]),
 			Row.toggle("Run timer", "Run time on the tracker: green ahead of your PB, yellow close, red behind. Your PB below it.",
 					c -> c.nucleusTimer, c -> c.nucleusTimer = !c.nucleusTimer),
-			Row.toggle("Crystal animations", "Fly-in when you find a crystal, a note when you place one, beams when the fifth goes in.",
+			Row.toggle("Crystal animations", "Fly-in when you find a crystal; each one you place drops into the finale's piece, and the fifth sets it off.",
 					c -> c.nucleusAnimations, c -> c.nucleusAnimations = !c.nucleusAnimations),
+			Row.choice("Finale", "What the crystals go into. Gauntlet: knuckle stones, then the snap. Altar: a ritual circle and a pillar of light. "
+							+ "Reactor: fuel rods, then meltdown. Constellation: stars that form a pickaxe. Crown: KING OF THE NUCLEUS. "
+							+ "Golem: it wakes up and slams the ground. Random: a different one each run. Click to change.",
+					c -> c.nucleusFinale.equals("RANDOM") ? "Random" : NucleusFinale.pick(c.nucleusFinale).label,
+					c -> c.nucleusFinale = FINALES[(indexOf(FINALES, c.nucleusFinale) + 1) % FINALES.length]),
 			Row.toggle("Loot reveal + stats", "The loot bundle spun out on a reel, then a card with your time, splits, PB and profit.",
 					c -> c.nucleusLoot, c -> c.nucleusLoot = !c.nucleusLoot),
 			Row.toggle("Blur finale", "During the beams, loot and stats: blur the world and hide the rest of the HUD. You can still walk.",
@@ -118,7 +124,12 @@ public final class NucleusSettingsScreen extends Window {
 			NucleusRun.test(0);
 		}).item(crystalIcon()).color(0xFF55FF)
 				.tooltip(Component.literal("A whole run from fake chat: five crystals found, placed, the finale, loot and stats.")).body());
-		reset = addRenderableWidget(new Button(x, y + 92, w, 18, Component.literal("Reset PB"), this::resetPb)
+		addRenderableWidget(new Button(x, y + 20, w, 18, Component.literal("Test finale"), () -> {
+			onClose();
+			NucleusRun.test(NucleusRun.FINALE_AT - 1800);
+		}).item(new ItemStack(Items.NETHER_STAR)).color(0xFFC83D)
+				.tooltip(Component.literal("Skip to the last crystals: the fifth goes in and the finale plays.")).body());
+		reset = addRenderableWidget(new Button(x, y + 114, w, 18, Component.literal("Reset PB"), this::resetPb)
 				.item(new ItemStack(Items.CLOCK)).color(0xFF5555)
 				.tooltip(Component.literal("Forget your fastest run. Click twice.")).body());
 	}
@@ -157,10 +168,10 @@ public final class NucleusSettingsScreen extends Window {
 		// right: test run, then your best
 		int rx = x + RIGHT_X, rw = BW - RIGHT_X;
 		Theme.divider(g, font, "TRY IT", rx, y, rw, a);
-		Theme.divider(g, font, "PERSONAL BEST", rx, y + 44, rw, a);
+		Theme.divider(g, font, "PERSONAL BEST", rx, y + 66, rw, a);
 		long best = c.nucleusBestMs;
-		Theme.textLeader(g, font, "Fastest run", Theme.TEXT_MUTED, best > 0 ? NucleusRun.time(best) : "--", 0xFFAA00, rx, y + 60, rw, a);
-		Theme.textLeader(g, font, "Runs this session", Theme.TEXT_MUTED, String.valueOf(NucleusRun.sessionRuns()), Theme.TEXT, rx, y + 74, rw, a);
+		Theme.textLeader(g, font, "Fastest run", Theme.TEXT_MUTED, best > 0 ? NucleusRun.time(best) : "--", 0xFFAA00, rx, y + 82, rw, a);
+		Theme.textLeader(g, font, "Runs this session", Theme.TEXT_MUTED, String.valueOf(NucleusRun.sessionRuns()), Theme.TEXT, rx, y + 96, rw, a);
 		boolean armed = System.currentTimeMillis() - resetArmed <= 3000;
 		reset.setMessage(Component.literal(armed ? "Click again to reset" : "Reset PB"));
 		if (tip != null) g.setTooltipForNextFrame(font, Component.literal(tip), mouseX, mouseY, Theme.tooltipStyle());

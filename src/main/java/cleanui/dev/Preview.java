@@ -86,7 +86,31 @@ public final class Preview {
 			new Shot("pose-lats", mc -> game("NONE", true, 2, -1750 + 2300 + 3600 + 900), -1, -1),
 			new Shot("nucleus-found", mc -> nucleus(-1300), -1, -1),
 			new Shot("nucleus-tracker", mc -> nucleus(7550), -1, -1),
-			new Shot("nucleus-beams", mc -> nucleus(11050), -1, -1),
+			new Shot("fin-gauntlet-place", mc -> finale("GAUNTLET", 12050), -1, -1),
+			new Shot("fin-gauntlet-build", mc -> finale("GAUNTLET", 16050), -1, -1),
+			new Shot("fin-gauntlet-late", mc -> finale("GAUNTLET", 17150), -1, -1),
+			new Shot("fin-gauntlet-climax", mc -> finale("GAUNTLET", 17700), -1, -1),
+			new Shot("fin-altar-place", mc -> finale("ALTAR", 12050), -1, -1),
+			new Shot("fin-altar-build", mc -> finale("ALTAR", 16050), -1, -1),
+			new Shot("fin-altar-late", mc -> finale("ALTAR", 17150), -1, -1),
+			new Shot("fin-altar-climax", mc -> finale("ALTAR", 17700), -1, -1),
+			new Shot("fin-reactor-place", mc -> finale("REACTOR", 12050), -1, -1),
+			new Shot("fin-reactor-build", mc -> finale("REACTOR", 16050), -1, -1),
+			new Shot("fin-reactor-late", mc -> finale("REACTOR", 17150), -1, -1),
+			new Shot("fin-reactor-climax", mc -> finale("REACTOR", 17700), -1, -1),
+			new Shot("fin-constellation-place", mc -> finale("CONSTELLATION", 12050), -1, -1),
+			new Shot("fin-constellation-build", mc -> finale("CONSTELLATION", 16050), -1, -1),
+			new Shot("fin-constellation-late", mc -> finale("CONSTELLATION", 17150), -1, -1),
+			new Shot("fin-constellation-climax", mc -> finale("CONSTELLATION", 17700), -1, -1),
+			new Shot("fin-crown-place", mc -> finale("CROWN", 12050), -1, -1),
+			new Shot("fin-crown-build", mc -> finale("CROWN", 16050), -1, -1),
+			new Shot("fin-crown-late", mc -> finale("CROWN", 17150), -1, -1),
+			new Shot("fin-crown-climax", mc -> finale("CROWN", 17700), -1, -1),
+			new Shot("fin-golem-place", mc -> finale("GOLEM", 12050), -1, -1),
+			new Shot("fin-golem-build", mc -> finale("GOLEM", 16050), -1, -1),
+			new Shot("fin-golem-late", mc -> finale("GOLEM", 17150), -1, -1),
+			new Shot("fin-golem-climax", mc -> finale("GOLEM", 17700), -1, -1),
+
 			new Shot("nucleus-loot", mc -> nucleus(17600), -1, -1),
 			new Shot("nucleus-stats", mc -> nucleus(20750), -1, -1),
 			new Shot("lock-picking", mc -> lock(650, 0, 0), -1, -1),
@@ -146,6 +170,7 @@ public final class Preview {
 
 	private static void tick(Minecraft mc) {
 		if (mc.player == null) return;
+		mc.options.pauseOnLostFocus = false; // a pause menu over the shots when the window loses focus
 		if (++ticks == START - 10) {
 			// some gear so the profile card has something to show (client-side only)
 			mc.player.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.DIAMOND_HELMET));
@@ -184,6 +209,12 @@ public final class Preview {
 	/** The Vanguard snake {@code msAgo} in, with these drops (none = no drop). */
 	private static Screen snake(long msAgo, int... drops) {
 		cleanui.feature.VanguardSnake.preview(msAgo, drops);
+		return null;
+	}
+
+	/** A test nucleus run with this finale, {@code msAgo} in (screenshots land 1.75 s later). */
+	private static Screen finale(String style, long msAgo) {
+		cleanui.feature.NucleusRun.test(msAgo, style);
 		return null;
 	}
 

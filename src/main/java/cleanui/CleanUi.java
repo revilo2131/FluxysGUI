@@ -128,8 +128,16 @@ public final class CleanUi implements ClientModInitializer {
 						.then(ClientCommands.literal("locket").executes(c -> { cleanui.feature.VanguardSnake.testLock(1); return 1; }))
 						.then(ClientCommands.literal("wisp").executes(c -> { cleanui.feature.VanguardSnake.testLock(2); return 1; }))
 						.then(ClientCommands.literal("key").executes(c -> { cleanui.feature.VanguardSnake.testLock(3); return 1; }))));
-		ClientCommandRegistrationCallback.EVENT.register((dispatcher, ctx) -> dispatcher.register(
-				ClientCommands.literal("nucleustest").executes(c -> { cleanui.feature.NucleusRun.test(0); return 1; })));
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, ctx) -> {
+			// /nucleustest = a whole run; /nucleustest gauntlet|altar|... = jump to that finale
+			var cmd = ClientCommands.literal("nucleustest").executes(c -> { cleanui.feature.NucleusRun.test(0); return 1; });
+			for (String f : new String[]{"gauntlet", "altar", "reactor", "constellation", "crown", "golem"})
+				cmd.then(ClientCommands.literal(f).executes(c -> {
+					cleanui.feature.NucleusRun.test(cleanui.feature.NucleusRun.FINALE_AT - 1800, f.toUpperCase(java.util.Locale.ROOT));
+					return 1;
+				}));
+			dispatcher.register(cmd);
+		});
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, ctx) -> dispatcher.register(
 				ClientCommands.literal("scathaslots")
 						.executes(c -> { ScathaSlots.spin(false); return 1; })

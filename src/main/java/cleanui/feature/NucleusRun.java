@@ -31,7 +31,7 @@ public final class NucleusRun {
 	private static final int[] COLORS = {0xFFAA00, 0xAA55FF, 0x55FF55, 0x55FFFF, 0xFFFF55};
 	/** Each crystal's note (note block steps, 12 = F#4): together they make a chord. */
 	private static final int[] NOTE = {12, 15, 19, 22, 24};
-	private static final int FLY_MS = 1600, TOAST_MS = 1600, BEAMS_MS = 2200;
+	private static final int FLY_MS = 1600, BEAMS_MS = NucleusFinale.FINALE_MS; // the finale, then the loot
 	private static final int FIRST = 500, BIG_EACH = 1700, SPIN = 1300, SMALL_EACH = 90, STATS_MS = 7500;
 
 	private static final NucleusParser parser = new NucleusParser();
@@ -42,14 +42,16 @@ public final class NucleusRun {
 	private static int foundCount, placedCount, sessionRuns;
 	private static String profit;
 	// animations (start times; -1 = not running)
-	private static int flyCrystal = -1, flyCount, toastCrystal = -1;
-	private static long flyStart, toastStart, beamsStart = -1, lootStart = -1;
+	private static int flyCrystal = -1, flyCount, lastPlaced = -1;
+	private static long flyStart, placeStart, beamsStart = -1, lootStart = -1;
+	private static NucleusFinale.Style style; // this run's finale (picked at the first placement)
+	private static String forceStyle;         // preview: always this one
 	private static List<Loot> bigs = List.of(), smalls = List.of(), all = List.of();
 	private static List<String> extras = List.of();
 	private static long runTime = -1;
 	private static boolean pb;
 	// what the tick already played
-	private static int bigsDone, smallsDone, lastReelCell, beamStage;
+	private static int bigsDone, smallsDone, lastReelCell;
 	private static boolean statsDone;
 	// /nucleustest: chat lines to feed at these times
 	private record Fake(long at, String line, int color) {}
@@ -119,6 +121,8 @@ public final class NucleusRun {
 		profit = null;
 		beamsStart = lootStart = -1;
 		runTime = -1;
+		style = null;
+		lastPlaced = -1;
 	}
 
 	private static void found(int i, int n, long at) {
@@ -131,6 +135,7 @@ public final class NucleusRun {
 		flyCrystal = i;
 		flyCount = n;
 		flyStart = at;
+		if (System.currentTimeMillis() - at > 1000) return; // replayed late (a test started part-way): no pile of old sounds
 		note(SoundEvents.NOTE_BLOCK_BELL, NOTE[i], 0.9f);
 		note(SoundEvents.NOTE_BLOCK_CHIME, Math.min(24, NOTE[i] + 7), 0.5f);
 		if (n == 5) for (int k = 0; k < 5; k++) note(SoundEvents.NOTE_BLOCK_PLING, NOTE[k], 0.5f); // all five: the chord
@@ -140,22 +145,22 @@ public final class NucleusRun {
 		if (i < 0 || placed[i]) return;
 		placed[i] = true;
 		placedCount++;
-		if (Config.get().nucleusAnimations) {
-			toastCrystal = i;
-			toastStart = at;
-			// climbs one step per crystal placed
-			note(SoundEvents.NOTE_BLOCK_HARP, 4 + placedCount * 3, 0.9f);
-			note(SoundEvents.NOTE_BLOCK_BELL, NOTE[i], 0.6f);
-		}
+		lastPlaced = i;
+		placeStart = at;
+		if (style == null) style = NucleusFinale.pick(forceStyle != null ? forceStyle : Config.get().nucleusFinale);
+		NucleusFinale.resetCues();
+		if (Config.get().nucleusAnimations && System.currentTimeMillis() - at < 1000)
+			note(SoundEvents.NOTE_BLOCK_HARP, 4 + placedCount * 3, 0.7f); // climbs one step per crystal
 		if (placedCount == 5) finish(at);
 	}
 
-	/** The fifth crystal is in: beams converge, and the loot reveal follows. */
+	/** The fifth crystal is in: the finale plays, and the loot reveal follows. */
 	private static void finish(long at) {
 		if (beamsStart >= 0) return;
 		runEnd = at;
+		if (style == null) style = NucleusFinale.pick(forceStyle != null ? forceStyle : Config.get().nucleusFinale);
 		beamsStart = Config.get().nucleusAnimations ? at : at - BEAMS_MS;
-		beamStage = 0;
+		NucleusFinale.resetCues();
 	}
 
 	private static void bundle(NucleusParser.Bundle b, long at) {
@@ -168,10 +173,7 @@ public final class NucleusRun {
 			Config.get().nucleusBestMs = runTime;
 			Config.get().save();
 		}
-		if (!Config.get().nucleusLoot) {
-			resetRun(-1);
-			return;
-		}
+		if (!Config.get().nucleusLoot) return; // the finale plays on; the next run's first crystal resets
 		all = b.items();
 		bigs = all.stream().filter(NucleusRun::big).toList();
 		smalls = all.stream().filter(l -> !big(l)).toList();
@@ -221,17 +223,9 @@ public final class NucleusRun {
 			Fake f = test.remove(0);
 			handle(parser.line(f.line(), f.color()), f.at());
 		}
-		if (beamsStart >= 0 && Config.get().nucleusAnimations) {
-			if (beamStage == 0 && now >= beamsStart) {
-				beamStage = 1;
-				ScathaSlots.sound(SoundEvents.BEACON_ACTIVATE, 1.2f, 1f);
-			}
-			if (beamStage == 1 && now >= beamsStart + 1000) {
-				beamStage = 2;
-				ScathaSlots.sound(SoundEvents.FIREWORK_ROCKET_LARGE_BLAST, 0.8f, 1f);
-				ScathaSlots.sound(SoundEvents.TOTEM_USE, 1.3f, 0.5f);
-				for (int k = 0; k < 5; k++) note(SoundEvents.NOTE_BLOCK_BELL, NOTE[k], 0.7f);
-			}
+		if (Config.get().nucleusAnimations && style != null) {
+			if (beamsStart >= 0 && now - beamsStart < BEAMS_MS) NucleusFinale.tickFinale(style, now - beamsStart);
+			else if (beamsStart < 0 && lastPlaced >= 0 && now - placeStart < NucleusFinale.PLACE_MS) NucleusFinale.tickPlace(style, lastPlaced, now - placeStart);
 		}
 		if (lootStart < 0) return;
 		// big items: ticks while the reel runs, then the landing with its rarity's confetti
@@ -289,9 +283,14 @@ public final class NucleusRun {
 		Font font = Minecraft.getInstance().font;
 		if (Config.get().nucleusTracker && (foundCount > 0 || placedCount > 0) && beamsStart < 0) drawTracker(g, font, now);
 		if (Config.get().nucleusAnimations) {
-			if (toastCrystal >= 0 && now - toastStart < TOAST_MS && beamsStart < 0) drawToast(g, font, now);
+			if (beamsStart < 0 && style != null && lastPlaced >= 0 && now - placeStart < NucleusFinale.PLACE_MS)
+				NucleusFinale.drawPlace(g, style, placed, lastPlaced, now - placeStart);
 			if (flyCrystal >= 0 && now - flyStart < FLY_MS) drawFly(g, font, now);
-			if (beamsStart >= 0 && now - beamsStart < BEAMS_MS) drawBeams(g, now);
+			if (beamsStart >= 0 && style != null && now - beamsStart < BEAMS_MS) {
+				List<ItemStack> loot = all.stream().map(NucleusRun::icon).toList();
+				List<ItemStack> stones = java.util.stream.IntStream.range(0, 5).mapToObj(NucleusRun::crystal).toList();
+				NucleusFinale.drawFinale(g, style, placed, lastPlaced, now - beamsStart, lootStart >= 0 ? loot : List.of(), stones);
+			}
 		}
 		if (lootStart >= 0 && now >= lootStart) drawLoot(g, font, now);
 	}
@@ -366,18 +365,6 @@ public final class NucleusRun {
 		pose.popMatrix();
 	}
 
-	/** "Amber placed 3/5" sliding in by the tracker (above it, or below when it sits at the top). */
-	private static void drawToast(GuiGraphicsExtractor g, Font font, long now) {
-		float t = (now - toastStart) / (float) TOAST_MS;
-		float slide = Math.min(1f, t * 6), fade = t > 0.75f ? (1 - t) / 0.25f : 1f;
-		String text = NAMES.get(toastCrystal) + " placed  " + placedCount + "/5";
-		float[] o = trackerAt(g);
-		boolean top = "TOP".equals(Config.get().nucleusTrackerPos);
-		int x = Math.round(o[0]) + Math.round((1 - slide) * -60), y = top ? Math.round(o[1] + (TRACKER_H + 14) * trackerScale()) : Math.round(o[1]) - 14;
-		int alpha = Math.max(4, Math.round(255 * fade));
-		g.text(font, text, x + 2, y, alpha << 24 | COLORS[toastCrystal], true);
-	}
-
 	/**
 	 * Crystal found: a white flash, the crystal pops up big in the middle spinning, shards burst out
 	 * in its colour, "AMBER CRYSTAL 1/5" slams in, then the crystal flies into its tracker slot.
@@ -426,40 +413,6 @@ public final class NucleusRun {
 			pose.scale(1.4f, 1.4f);
 			g.text(font, count, -font.width(count) / 2, 0, alpha << 24 | 0xFFFFFF, true);
 			pose.popMatrix();
-		}
-	}
-
-	/** Fifth crystal in: five beams in the crystal colours sweep in to the centre, then a flash. */
-	private static void drawBeams(GuiGraphicsExtractor g, long now) {
-		long t = now - beamsStart;
-		int sw = g.guiWidth(), sh = g.guiHeight();
-		float cx = sw / 2f, cy = sh / 2f - 10, reach = (float) Math.hypot(sw, sh) / 2;
-		float in = Math.min(1f, t / 1000f), fade = t < 1000 ? 1f : Math.max(0f, 1 - (t - 1000) / 1200f);
-		g.fill(0, 0, sw, sh, Math.round(110 * fade) << 24);
-		Matrix3x2fStack pose = g.pose();
-		for (int k = 0; k < 5; k++) {
-			double a = -Math.PI / 2 + k * Math.PI * 2 / 5 + t / 900.0;
-			float len = reach * (1 - in) + 0, from = reach; // beams grow in from the edge to the centre
-			int alpha = Math.round(220 * fade);
-			pose.pushMatrix();
-			pose.translate(cx, cy);
-			pose.rotate((float) a);
-			float width = 3 + 4 * in;
-			g.fillGradient(Math.round(len), Math.round(-width), Math.round(from), Math.round(width), alpha << 24 | COLORS[k], (alpha / 3) << 24 | COLORS[k]);
-			g.fill(Math.round(len), -1, Math.round(from), 1, alpha << 24 | 0xFFFFFF);
-			pose.popMatrix();
-		}
-		if (t >= 1000) { // converge: flash and a ring blowing out
-			float r = (t - 1000) / 1200f;
-			g.fill(0, 0, sw, sh, Math.round(200 * Math.max(0f, 1 - r * 3)) << 24 | 0xFFFFFF);
-			float ring = 20 + r * reach;
-			for (int k = 0; k < 40; k++) {
-				double a = k * Math.PI * 2 / 40;
-				int c = COLORS[k % 5];
-				int alpha = Math.round(255 * (1 - r));
-				g.fill(Math.round(cx + (float) Math.cos(a) * ring) - 2, Math.round(cy + (float) Math.sin(a) * ring) - 2,
-						Math.round(cx + (float) Math.cos(a) * ring) + 2, Math.round(cy + (float) Math.sin(a) * ring) + 2, alpha << 24 | c);
-			}
 		}
 	}
 
@@ -570,6 +523,15 @@ public final class NucleusRun {
 	 * all placed, the loot bundle. {@code msAgo} > 0 starts it that far in (for preview screenshots).
 	 */
 	public static void test(long msAgo) {
+		test(msAgo, null);
+	}
+
+	/** When the test run's fifth crystal goes in (ms after it starts): {@code test(FINALE_AT - 400)} jumps to the finale. */
+	public static final long FINALE_AT = 5 * 1900 + 300 + 4 * 1500;
+
+	/** A test run with this finale ({@code null} = the setting's). */
+	public static void test(long msAgo, String finale) {
+		forceStyle = finale;
 		test.clear();
 		long t0 = System.currentTimeMillis() - msAgo, t = 0;
 		int[] order = {0, 1, 3, 4, 2}; // Amber, Amethyst, Sapphire, Topaz, Jade
@@ -581,7 +543,7 @@ public final class NucleusRun {
 		t += 300;
 		for (int k = 0; k < 5; k++) {
 			test.add(new Fake(t0 + t, "✦ You placed the " + NAMES.get(order[k]) + " Crystal!", 0xAA00AA));
-			t += 500;
+			if (k < 4) t += 1500; // time to watch each crystal drop in
 		}
 		String[][] loot = {{"Jaderald", "AA00AA"}, {"Pickonimbus 2000", "AA00AA"}, {"Precious Pearl", "AA00AA"},
 				{"Fine Amber Gemstone", "5555FF"}, {"Fine Amethyst Gemstone", "5555FF"}, {"Fine Jade Gemstone", "5555FF"},

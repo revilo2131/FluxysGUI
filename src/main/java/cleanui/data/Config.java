@@ -73,6 +73,8 @@ public final class Config {
 	public boolean nucleusFocus = true;
 	/** The buff Scatha walks in on a new personal best. */
 	public boolean nucleusPbWalkIn = true;
+	/** What the five crystals go into: RANDOM (a different one each run), GAUNTLET, ALTAR, REACTOR, CONSTELLATION, CROWN, GOLEM. */
+	public String nucleusFinale = "RANDOM";
 	/** Vanguard corpse loot: the spinning ouroboros, cut by a katana on a rare drop. */
 	public boolean vanguardSnake = true;
 	/** Vanguard corpses play the lock being picked (6/6 dye ... 4/6 wisp or key) instead of the snake. */
