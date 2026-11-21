@@ -75,7 +75,8 @@ public final class Preview {
 			new Shot("leveling", Preview::fakeLeveling, -1, -1),
 			new Shot("leveling-tile", Preview::fakeLeveling, 340, 262),
 			new Shot("hotm-reset", Preview::fakeHotmReset, -1, -1),
-			new Shot("hotm-swap", Preview::fakeHotmSwap, -1, -1));
+			new Shot("hotm-swap", Preview::fakeHotmSwap, -1, -1),
+			new Shot("rng", Preview::fakeRngMeter, 330, 285));
 	private static final int START = 80, EACH = 40;
 	/** -Dcleanui.preview.only=a,b runs just those shots. */
 	private static final List<Shot> RUN = SHOTS.stream()
@@ -375,6 +376,31 @@ public final class Preview {
 		put(c, 48, Items.ARROW, "Go Back", "To SkyBlock Menu");
 		put(c, 50, Items.OAK_SIGN, "SkyBlock Levels in Chat", "View other players' SkyBlock Level.", "", "ENABLED", "", "Click to disable!");
 		return CleanUi.pageFor("SkyBlock Leveling", menu(mc, c, "SkyBlock Leveling"));
+	}
+
+	/** Real "Crystal Nucleus RNG Meter" layout (game log, 2026-11-21). */
+	private static Screen fakeRngMeter(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		put(c, 4, Items.ENDER_EYE, "Crystal Nucleus RNG Meter", "Your Crystal Nucleus RNG Meter fills", "with 1,000 Nucleus XP every time.", "",
+				"Selected Drop", "Divan's Alloy", "", "Progress: 5%", "                          50,000/1M");
+		Object[][] drops = {{10, Items.DIAMOND_PICKAXE, "Pickonimbus 2000", "Rare (3.2551%)", "4,000"},
+				{11, Items.EGG, "Prehistoric Egg", "Extraordinary (1.6275%)", "8,000"}, {12, Items.GOLD_NUGGET, "Divan Fragment", "Extraordinary (1.953%)", "8,000"},
+				{13, Items.AMETHYST_SHARD, "Jasper Crystal", "Extraordinary (0.8138%)", "10,000"},
+				{14, Items.ENCHANTED_BOOK, "Enchanted Book (Lapidary I)", "Extraordinary (1.302%)", "10,000"},
+				{15, Items.BONE, "Helix Fossil", "Extraordinary (1.302%)", "10,000"}, {16, Items.REDSTONE, "Ruby Crystal", "Extraordinary (0.8138%)", "10,000"},
+				{19, Items.COOKIE, "Dwarven O's Gemstone Grahams", "Pray RNGesus (0.472%)", "20,000"}, {20, Items.EMERALD, "Jaderald", "Pray RNGesus (0.472%)", "20,000"},
+				{21, Items.ENCHANTED_BOOK, "Enchanted Book (Fortune IV)", "Pray RNGesus (0.2279%)", "35,000"},
+				{22, Items.GUNPOWDER, "Gemstone Mixture", "Pray RNGesus (0.2279%)", "35,000"}, {23, Items.SNOWBALL, "Precious Pearl", "Pray RNGesus (0.1628%)", "50,000"},
+				{24, Items.BONE_MEAL, "Claw Fossil", "Pray RNGesus (0.1628%)", "50,000"}, {25, Items.POTION, "Recall Potion", "Pray RNGesus (0.0814%)", "100,000"},
+				{28, Items.FEATHER, "Quick Claw", "RNGesus Incarnate (0.0163%)", "450,000"}, {30, Items.SLIME_BALL, "Jade Dye", "RNGesus Incarnate (0.001%)", "2,500,000"}};
+		for (Object[] d : drops)
+			put(c, (Integer) d[0], (Item) d[1], (String) d[2], "Odds: " + d[3], "", "Nucleus XP: 50,000/" + d[4], "", "Click to select!");
+		put(c, 29, Items.GOLD_BLOCK, "Divan's Alloy", "Odds: RNGesus Incarnate (0.0055% 0.0061%)", "", "Progress: 5%",
+				"                          50,000/1M", "", "SELECTED");
+		put(c, 48, Items.ARROW, "Go Back", "To Heart of the Mountain");
+		put(c, 50, Items.OAK_SIGN, "Search", "Find drops by name!", "", "Click to search!");
+		put(c, 51, Items.LEVER, "Reset RNG Drop", "Resets the selected drop.", "", "Selected Drop", "Divan's Alloy", "", "Click to reset!");
+		return CleanUi.pageFor("Crystal Nucleus RNG Meter", menu(mc, c, "Crystal Nucleus RNG Meter"));
 	}
 
 	/** A confirmation opened from HOTM: becomes a dialog card. */

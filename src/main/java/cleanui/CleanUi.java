@@ -6,6 +6,7 @@ import cleanui.feature.CalendarScreen;
 import cleanui.feature.DungeonScreen;
 import cleanui.feature.LevelingScreen;
 import cleanui.feature.ListPage;
+import cleanui.feature.RngMeterScreen;
 import cleanui.feature.TrackScreen;
 import cleanui.feature.TreeScreen;
 import cleanui.feature.SubMenuScreen;
@@ -58,6 +59,8 @@ public final class CleanUi implements ClientModInitializer {
 	public static Screen pageFor(String title, AbstractContainerScreen<?> menu) {
 		Page exact = MENU_PAGES.get(title);
 		if (exact != null) return exact.enabled().test(Config.get()) ? exact.open().apply(menu) : null;
+		Screen rng = RngMeterScreen.forTitle(title, menu);
+		if (rng != null) return rng;
 		Screen leveling = LevelingScreen.forTitle(title, menu);
 		if (leveling != null) return leveling;
 		Screen dungeon = DungeonScreen.forTitle(title, menu);

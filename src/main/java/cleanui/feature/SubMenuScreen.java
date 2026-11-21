@@ -173,7 +173,8 @@ public final class SubMenuScreen extends MenuPage {
 		Theme.item(g, t.item().stack(), t.x() + (t.w() - size) / 2, t.y() + (t.h() - size) / 2 - Math.round(h), size, a);
 		boolean leftFree = all.stream().noneMatch(o -> o.y() == t.y() && o.x() == t.x() - COL_STEP);
 		boolean rightFree = all.stream().noneMatch(o -> o.y() == t.y() && o.x() == t.x() + COL_STEP);
-		int room = t.w() + (leftFree ? COL_STEP - 4 : 0) + (rightFree ? COL_STEP - 4 : 0);
+		// the label is centred, so it may only grow when both sides are free (else it runs into a neighbour's)
+		int room = t.w() + (leftFree && rightFree ? 2 * (COL_STEP - 4) : 0);
 		String label = Theme.fit(font, t.item().name(), room);
 		g.text(font, label, t.x() + (t.w() - font.width(label)) / 2, t.y() + t.h() + 2,
 				Theme.argb(selected ? Theme.TITLE : Theme.TEXT_MUTED, a), true);
