@@ -143,6 +143,17 @@ public abstract class CleanScreen extends Screen {
 		open.target(0f);
 	}
 
+	/** The inventory key (whatever it's bound to) closes the page like Esc, as it does in chest menus; not while typing in a box. */
+	@Override
+	public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+		if (super.keyPressed(event)) return true;
+		if (minecraft.options.keyInventory.matches(event) && !(getFocused() instanceof net.minecraft.client.gui.components.EditBox)) {
+			onClose();
+			return true;
+		}
+		return false;
+	}
+
 	@Override
 	public boolean isPauseScreen() {
 		return false;
