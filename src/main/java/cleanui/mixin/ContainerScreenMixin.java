@@ -21,7 +21,9 @@ public abstract class ContainerScreenMixin extends AbstractContainerScreen<Chest
 
 	@Inject(method = "extractBackground", at = @At("TAIL"))
 	private void cleanui$restyle(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
-		if (MenuStyle.active(this))
+		if (MenuStyle.active(this)) {
 			MenuStyle.background(g, leftPos, topPos, imageWidth, imageHeight, menu, minecraft.player.getInventory());
+			cleanui.feature.MenuPage.logUnpaged(title.getString(), menu, minecraft.player.getInventory()); // record its layout once
+		}
 	}
 }

@@ -69,6 +69,7 @@ public final class Preview {
 			new Shot("pets", Preview::fakePets, -1, -1),
 			new Shot("settings", mc -> new SettingsScreen(fakeSkyBlockMenu(mc)), -1, -1),
 			new Shot("wardrobe", Preview::fakeWardrobe, 380, 260),
+			new Shot("loadouts", Preview::fakeLoadouts, 700, 260),
 			new Shot("hotm", Preview::fakeHotm, -1, -1),
 			new Shot("hotm-hover", Preview::fakeHotm, 470, 355),
 			new Shot("dungeons", Preview::fakeDungeons, -1, -1),
@@ -389,6 +390,30 @@ public final class Preview {
 		put(c, 48, Items.ARROW, "Go Back", "To SkyBlock Menu");
 		put(c, 50, Items.OAK_SIGN, "SkyBlock Levels in Chat", "View other players' SkyBlock Level.", "", "ENABLED", "", "Click to disable!");
 		return CleanUi.pageFor("SkyBlock Leveling", menu(mc, c, "SkyBlock Leveling"));
+	}
+
+	/** "(1/3) Loadouts" laid out like the user's screenshot (item text guessed): actions, equipment, armor, pet, loadouts. */
+	private static Screen fakeLoadouts(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		put(c, 18, Items.ENDER_EYE, "Edit Loadout", "Click to edit!");
+		put(c, 27, Items.OBSIDIAN, "Rename Loadout", "Click to rename!");
+		put(c, 36, Items.LEVER, "Loadout Settings", "Click to open!");
+		String[] equip = {"Dwarven Handwarmers", "Flowstate Cloak", "Dwarven Belt", "Divan Gloves"};
+		for (int i = 0; i < 4; i++) put(c, 10 + i * 9, Items.PLAYER_HEAD, equip[i]);
+		Item[] armor = {Items.NETHERITE_HELMET, Items.NETHERITE_CHESTPLATE, Items.NETHERITE_LEGGINGS, Items.NETHERITE_BOOTS};
+		for (int i = 0; i < 4; i++) put(c, 11 + i * 9, armor[i], "Divan's " + new String[]{"Helmet", "Chestplate", "Leggings", "Boots"}[i]);
+		put(c, 21, Items.PLAYER_HEAD, "[Lvl 96] Armadillo", "Mining Mount");
+		int[] slots = {14, 15, 16, 23, 24, 25, 32, 33, 34, 41};
+		Item[] icons = {Items.DIAMOND_HELMET, Items.GOLDEN_HELMET, Items.NETHERITE_HELMET, Items.GOLDEN_HELMET, Items.GOLDEN_HELMET,
+				Items.GOLDEN_HELMET, Items.DIAMOND_HELMET, Items.GOLDEN_HELMET, Items.NETHERITE_HELMET, Items.LEATHER_HELMET};
+		for (int i = 0; i < slots.length; i++)
+			put(c, slots[i], icons[i], "Loadout " + (i + 1), i == 8 ? "SELECTED" : "Click to equip!");
+		put(c, 42, pane(DyeColor.GRAY), "Locked Loadout", "Unlock more loadouts!");
+		put(c, 43, pane(DyeColor.GRAY), "Locked Loadout", "Unlock more loadouts!");
+		put(c, 44, Items.ARROW, "Next Page");
+		put(c, 48, Items.ARROW, "Go Back");
+		put(c, 49, Items.BARRIER, "Close");
+		return CleanUi.pageFor("(1/3) Loadouts", menu(mc, c, "(1/3) Loadouts"));
 	}
 
 	/** Real Maddox "Slayer" hub (game log, 2026-11-21), lore shortened. */

@@ -89,6 +89,27 @@ public abstract class MenuPage extends Window {
 		LOGGER.info(sb.toString());
 	}
 
+	private static final java.util.Map<String, Long> FIRST_SEEN = new java.util.HashMap<>();
+
+	/**
+	 * Same log for menus without a page (called every frame from the chest screen), so their
+	 * layout is known before a page is built. Waits a second after the menu is first seen.
+	 */
+	public static void logUnpaged(String title, net.minecraft.world.inventory.AbstractContainerMenu menu, net.minecraft.world.Container playerInventory) {
+		if (LOGGED_MENUS.contains(title)) return;
+		long first = FIRST_SEEN.computeIfAbsent(title, k -> System.currentTimeMillis());
+		if (System.currentTimeMillis() - first < 1000) return;
+		LOGGED_MENUS.add(title);
+		StringBuilder sb = new StringBuilder("[Clean UI] Menu '" + title + "':");
+		for (int i = 0; i < menu.slots.size(); i++) {
+			Slot slot = menu.slots.get(i);
+			if (slot.container == playerInventory || slot.getItem().isEmpty()) continue;
+			MenuItem item = new MenuItem(i, slot.getItem());
+			sb.append("\n  slot ").append(i).append(" '").append(item.name()).append("' ").append(item.lore());
+		}
+		LOGGER.info(sb.toString());
+	}
+
 	/** One click on that menu slot as the player made it: shift-click stays a shift-click. */
 	protected void clickAs(int menuSlot, net.minecraft.client.input.MouseButtonEvent event) {
 		boolean shift = (event.modifiers() & org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT) != 0;

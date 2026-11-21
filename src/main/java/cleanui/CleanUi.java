@@ -6,6 +6,7 @@ import cleanui.feature.CalendarScreen;
 import cleanui.feature.DungeonScreen;
 import cleanui.feature.LevelingScreen;
 import cleanui.feature.ListPage;
+import cleanui.feature.LoadoutsScreen;
 import cleanui.feature.RngMeterScreen;
 import cleanui.feature.SlayerScreen;
 import cleanui.feature.StatsScreen;
@@ -62,6 +63,8 @@ public final class CleanUi implements ClientModInitializer {
 	public static Screen pageFor(String title, AbstractContainerScreen<?> menu) {
 		Page exact = MENU_PAGES.get(title);
 		if (exact != null) return exact.enabled().test(Config.get()) ? exact.open().apply(menu) : null;
+		Screen loadouts = LoadoutsScreen.forTitle(title, menu);
+		if (loadouts != null) return loadouts;
 		Screen wardrobe = WardrobeScreen.forTitle(title, menu);
 		if (wardrobe != null) return wardrobe;
 		Screen slayer = SlayerScreen.forTitle(title, menu);
