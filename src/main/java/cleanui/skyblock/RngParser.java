@@ -12,6 +12,7 @@ public final class RngParser {
 
 	private static final Pattern ODDS = Pattern.compile("Odds: (.+?) \\((.+)\\)");
 	private static final Pattern XP = Pattern.compile("XP: ([\\d,.]+[kKmMbB]?)\\s*/\\s*([\\d,.]+[kKmMbB]?)");
+	private static final Pattern PER_RUN = Pattern.compile("with ([\\d,.]+[kKmM]?) [A-Za-z ]*XP");
 	/** Hypixel's colours for the odds names. */
 	private static final Map<String, Integer> RARITY = Map.of("Common", 0xFFFFFF, "Uncommon", 0x55FF55, "Rare", 0x5555FF,
 			"Extraordinary", 0xAA00AA, "Pray RNGesus", 0xFF55FF, "RNGesus Incarnate", 0xFF5555);
@@ -43,6 +44,22 @@ public final class RngParser {
 		long need = total != null ? PerkParser.amount(total) : 0; // amount() reads "1M" / "2,500,000"
 		float fill = need > 0 ? Math.min(1f, (float) PerkParser.amount(done) / need) : 0f;
 		return new Drop(rarity, chance, fill, done, total, selected);
+	}
+
+	/** "...fills / with 1,000 Nucleus XP every time you..." → 1000; -1 if the header doesn't say. */
+	public static long perRun(List<String> headerLore) {
+		for (String line : headerLore) {
+			Matcher m = PER_RUN.matcher(line);
+			if (m.find()) return PerkParser.amount(m.group(1));
+		}
+		return -1;
+	}
+
+	/** Runs until the meter is full for this drop (0 = full now), or -1 if unknown. */
+	public static long runsLeft(Drop d, long perRun) {
+		if (d.done() == null || perRun <= 0) return -1;
+		long left = PerkParser.amount(d.total()) - PerkParser.amount(d.done());
+		return left <= 0 ? 0 : (left + perRun - 1) / perRun;
 	}
 
 	public static int color(String rarity) {

@@ -22,7 +22,7 @@ import java.util.Map;
  * and the menu's other buttons (Search, Reset) along the bottom. Clicks go to the real menu.
  */
 public final class RngMeterScreen extends MenuPage {
-	private static final int CARD_H = 40, LIST_Y = CARD_H + 6, COLS = 3, COL_GAP = 4, ROW_H = 19, ROW_STEP = 21;
+	private static final int CARD_H = 44, LIST_Y = CARD_H + 6, COLS = 3, COL_GAP = 4, ROW_H = 19, ROW_STEP = 21;
 	private static final int BUTTON_W = 96, BUTTON_H = 18;
 
 	private record Box(MenuItem item, RngParser.Drop drop, int x, int y, int w, int h) {
@@ -89,8 +89,10 @@ public final class RngMeterScreen extends MenuPage {
 		List<Box> boxes = boxes(items);
 		if (giveUpIfUnreadable(boxes.isEmpty())) return;
 		Box selected = boxes.stream().filter(b -> b.drop() != null && b.drop().selected()).findFirst().orElse(null);
+		Box hoveredDrop = boxes.stream().filter(b -> b.drop() != null && b.contains(mouseX, mouseY)).findFirst().orElse(null);
 		MenuItem header = header(items);
-		extractCard(g, header, selected, mouseX, mouseY, a);
+		// hovering a drop previews it in the card: what the meter would look like if you picked it
+		extractCard(g, header, hoveredDrop != null ? hoveredDrop : selected, hoveredDrop != null && hoveredDrop != selected, mouseX, mouseY, a);
 		Box hovered = null;
 		for (Box b : boxes) {
 			boolean over = b.contains(mouseX, mouseY);
@@ -103,8 +105,8 @@ public final class RngMeterScreen extends MenuPage {
 		if (hovered != null) Theme.itemTooltip(g, hovered.item().stack(), mouseX, mouseY);
 	}
 
-	/** Meter card: selected drop, its rarity and chance, and the meter toward it. */
-	private void extractCard(GuiGraphicsExtractor g, MenuItem header, Box selected, int mouseX, int mouseY, float a) {
+	/** Meter card: the selected (or previewed) drop, its rarity and chance, runs left, and the meter toward it. */
+	private void extractCard(GuiGraphicsExtractor g, MenuItem header, Box selected, boolean preview, int mouseX, int mouseY, float a) {
 		int x = bx(), y = by(), w = BW;
 		boolean over = mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + CARD_H;
 		int color = selected != null ? RngParser.color(selected.drop().rarity()) : Theme.FRAME;
@@ -120,11 +122,16 @@ public final class RngMeterScreen extends MenuPage {
 		}
 		RngParser.Drop d = selected.drop();
 		String chance = d.rarity() + "  " + d.chance();
-		g.text(font, chance, right - font.width(chance), y + 6, Theme.argb(color, a), true);
-		g.text(font, Theme.fit(font, selected.item().name(), right - tx - font.width(chance) - 8), tx, y + 6, Theme.argb(Theme.TITLE, a), true);
+		g.text(font, chance, right - font.width(chance), y + 5, Theme.argb(bright(color), a), true);
+		int tagW = preview ? Theme.tag(g, font, "PREVIEW", right - font.width(chance) - 8 - font.width("PREVIEW") - 6, y + 4, Theme.FRAME, a) + 6 : 0;
+		g.text(font, Theme.fit(font, selected.item().name(), right - tx - font.width(chance) - 8 - tagW), tx, y + 5, Theme.argb(Theme.TITLE, a), true);
+		long runs = header != null ? RngParser.runsLeft(d, RngParser.perRun(header.lore())) : -1;
+		String status = runs == 0 ? (d.selected() ? "Meter full: guaranteed on your next run!" : "Meter already full: select it to guarantee it next run")
+				: runs > 0 ? String.format("%,d runs left", runs) : null;
+		if (status != null) g.text(font, status, tx, y + 16, Theme.argb(runs == 0 ? Theme.ACCENT : Theme.TEXT_MUTED, a), true);
 		meter.target(d.fill());
 		String xp = d.done() != null ? SkillParser.compact(d.done()) + " / " + SkillParser.compact(d.total()) + " XP" : null;
-		Theme.bar(g, font, tx, y + CARD_H - 19, right - tx, 11, meter.get(), Theme.mix(color, 0x000000, 0.2f), xp, a);
+		Theme.bar(g, font, tx, y + CARD_H - 14, right - tx, 10, meter.get(), d.fill() >= 1f ? Theme.ACCENT : Theme.mix(color, 0x000000, 0.2f), xp, a);
 		if (over && header != null) Theme.itemTooltip(g, header.stack(), mouseX, mouseY);
 	}
 
@@ -137,11 +144,16 @@ public final class RngMeterScreen extends MenuPage {
 		g.fill(x + 1, y + 1, x + 3 + Math.round(2 * h), y + b.h() - 1, Theme.argb(color, a));
 		Theme.item(g, b.item().stack(), x + 6, y + 2, Math.round(13 + 2 * h), a);
 		int tx = x + 23, right = x + w - 5;
-		g.text(font, d.chance(), right - font.width(d.chance()), y + 4, Theme.argb(color, a), true);
+		g.text(font, d.chance(), right - font.width(d.chance()), y + 4, Theme.argb(bright(color), a), true);
 		String name = Theme.fit(font, b.item().name(), right - tx - font.width(d.chance()) - 5);
 		g.text(font, name, tx, y + 4, Theme.argb(d.selected() ? Theme.TITLE : Theme.TEXT, a), true);
 		g.fill(tx, y + b.h() - 4, right, y + b.h() - 2, Theme.argb(Theme.SLOT, a));
 		g.fill(tx, y + b.h() - 4, tx + Math.round((right - tx) * d.fill()), y + b.h() - 2, Theme.argb(d.fill() >= 1f ? Theme.ACCENT : color, a));
+	}
+
+	/** Rarity colour lifted a bit so dark ones (Extraordinary purple) read on the navy rows. */
+	private static int bright(int color) {
+		return Theme.mix(color, 0xFFFFFF, 0.25f);
 	}
 
 	/** Search / Reset: item and name, like a footer button. */

@@ -76,7 +76,8 @@ public final class Preview {
 			new Shot("leveling-tile", Preview::fakeLeveling, 340, 262),
 			new Shot("hotm-reset", Preview::fakeHotmReset, -1, -1),
 			new Shot("hotm-swap", Preview::fakeHotmSwap, -1, -1),
-			new Shot("rng", Preview::fakeRngMeter, 330, 285));
+			new Shot("rng", Preview::fakeRngMeter, -1, -1),
+			new Shot("rng-hover", Preview::fakeRngMeter, 330, 232));
 	private static final int START = 80, EACH = 40;
 	/** -Dcleanui.preview.only=a,b runs just those shots. */
 	private static final List<Shot> RUN = SHOTS.stream()

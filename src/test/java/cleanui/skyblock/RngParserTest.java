@@ -27,6 +27,17 @@ class RngParserTest {
 	}
 
 	@Test
+	void runsLeft() {
+		long perRun = RngParser.perRun(List.of("Your Crystal Nucleus RNG Meter fills", "with 1,000 Nucleus XP every time you", "complete the Crystal Nucleus!"));
+		assertEquals(1000, perRun);
+		var alloy = RngParser.drop(List.of("Odds: RNGesus Incarnate (0.0061%)", "Progress: 5%", "50,000/1M", "SELECTED"));
+		assertEquals(950, RngParser.runsLeft(alloy, perRun));
+		var pick = RngParser.drop(List.of("Odds: Rare (3.2551%)", "Nucleus XP: 50,000/4,000"));
+		assertEquals(0, RngParser.runsLeft(pick, perRun));
+		assertEquals(-1, RngParser.perRun(List.of("no meter text")));
+	}
+
+	@Test
 	void selectedDrop() {
 		assertEquals("Divan's Alloy", RngParser.selected(List.of("Resets the selected drop.", "", "Selected Drop", "Divan's Alloy", "")));
 		assertNull(RngParser.selected(List.of("nothing")));
