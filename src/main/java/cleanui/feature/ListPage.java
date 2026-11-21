@@ -18,6 +18,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +62,8 @@ public final class ListPage extends MenuPage {
 	private static final Pattern CATEGORY_TITLE = Pattern.compile("^(.+) Collections$");
 	private static final Pattern BESTIARY_TITLE = Pattern.compile("^Bestiary(?:\\s*[➜>\\-:]\\s*(.+))?$");
 	private static final Pattern PETS_TITLE = Pattern.compile("^Pets(?: \\(\\d+/\\d+\\))?$");
+	/** Pet name colours from least to most rare (Uncommon … Divine); Common (white) and unknown sort last. */
+	private static final List<Integer> PET_RARITY = List.of(0x55FF55, 0x5555FF, 0xAA00AA, 0xFFAA00, 0xFF55FF, 0x55FFFF);
 	private static final int TOP = 24, GAP = 5, ROW_GAP = 4;
 	private static final Map<String, ItemStack> ITEM_CACHE = new HashMap<>();
 
@@ -123,6 +126,10 @@ public final class ListPage extends MenuPage {
 			else if (name.equals("Next Page")) nextSlot = item.slot();
 			else if (!name.isEmpty() && !NAV.contains(name)) content.add(item);
 		}
+		// pets: highest level first, ties by rarity (rarest first); only reorders this page, clicks keep their slots
+		if (mode == Mode.PETS)
+			content.sort(Comparator.comparingInt((MenuItem i) -> -CollectionParser.parse(i.name(), i.lore()).tier())
+					.thenComparingInt(i -> -PET_RARITY.indexOf(Theme.colorOf(i.stack().getHoverName()))));
 		int n = content.size(), cols = mode.cols, rows = Math.max(1, (n + cols - 1) / cols);
 		int w = (BW - (cols - 1) * GAP) / cols;
 		int h = Math.min(cols == 3 ? 44 : 40, (BH - TOP - (rows - 1) * ROW_GAP) / rows);
