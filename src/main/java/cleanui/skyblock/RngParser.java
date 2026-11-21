@@ -13,6 +13,7 @@ public final class RngParser {
 	private static final Pattern ODDS = Pattern.compile("Odds: (.+?) \\((.+)\\)");
 	private static final Pattern XP = Pattern.compile("XP: ([\\d,.]+[kKmMbB]?)\\s*/\\s*([\\d,.]+[kKmMbB]?)");
 	private static final Pattern PER_RUN = Pattern.compile("with ([\\d,.]+[kKmM]?) [A-Za-z ]*XP");
+	private static final List<String> ORDER = List.of("Common", "Uncommon", "Rare", "Extraordinary", "Pray RNGesus", "RNGesus Incarnate");
 	/** Hypixel's colours for the odds names. */
 	private static final Map<String, Integer> RARITY = Map.of("Common", 0xFFFFFF, "Uncommon", 0x55FF55, "Rare", 0x5555FF,
 			"Extraordinary", 0xAA00AA, "Pray RNGesus", 0xFF55FF, "RNGesus Incarnate", 0xFF5555);
@@ -60,6 +61,12 @@ public final class RngParser {
 		if (d.done() == null || perRun <= 0) return -1;
 		long left = PerkParser.amount(d.total()) - PerkParser.amount(d.done());
 		return left <= 0 ? 0 : (left + perRun - 1) / perRun;
+	}
+
+	/** Rarity order for grouping, rarest last; unknown names sort after the known ones. */
+	public static int rank(String rarity) {
+		int i = ORDER.indexOf(rarity);
+		return i < 0 ? ORDER.size() : i;
 	}
 
 	public static int color(String rarity) {

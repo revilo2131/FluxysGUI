@@ -24,6 +24,8 @@ class RngParserTest {
 
 		assertNull(RngParser.drop(List.of("Find drops by name!")));
 		assertEquals(0xFF5555, RngParser.color("RNGesus Incarnate"));
+		assertTrue(RngParser.rank("Rare") < RngParser.rank("Pray RNGesus"));
+		assertTrue(RngParser.rank("Pray RNGesus") < RngParser.rank("Something New"));
 	}
 
 	@Test
