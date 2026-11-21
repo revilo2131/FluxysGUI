@@ -224,6 +224,27 @@ public final class Theme {
 	}
 
 	/**
+	 * First colour in Hypixel text that isn't plain gray/white: a stat symbol's colour, a pet name's
+	 * rarity colour. Reads styles, or legacy "§c" codes when the text carries those. Else body text.
+	 */
+	public static int colorOf(net.minecraft.network.chat.Component c) {
+		for (net.minecraft.network.chat.Component part : c.toFlatList()) {
+			net.minecraft.network.chat.TextColor tc = part.getStyle().getColor();
+			if (tc == null) continue;
+			int v = tc.getValue();
+			if (v != 0xAAAAAA && v != 0x555555 && v != 0xFFFFFF) return v;
+		}
+		String s = c.getString();
+		for (int i = s.indexOf('§'); i >= 0 && i + 1 < s.length(); i = s.indexOf('§', i + 1)) {
+			net.minecraft.ChatFormatting f = net.minecraft.ChatFormatting.getByCode(s.charAt(i + 1));
+			net.minecraft.network.chat.TextColor tc = f != null ? net.minecraft.network.chat.TextColor.fromLegacyFormat(f) : null; // null for bold etc.
+			if (tc != null && f != net.minecraft.ChatFormatting.GRAY && f != net.minecraft.ChatFormatting.DARK_GRAY
+					&& f != net.minecraft.ChatFormatting.WHITE) return tc.getValue();
+		}
+		return TEXT;
+	}
+
+	/**
 	 * Gold text with a bright band sweeping left to right, for maxed things.
 	 * Driven by the real clock, so it's the same speed at any FPS.
 	 */

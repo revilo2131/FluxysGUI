@@ -272,16 +272,16 @@ public final class Preview {
 
 	private static Screen fakePets(Minecraft mc) {
 		SimpleContainer c = new SimpleContainer(54);
-		Object[][] pets = {{Items.PLAYER_HEAD, "[Lvl 100] Golden Dragon", "MAX LEVEL"},
-				{Items.PLAYER_HEAD, "[Lvl 87] Elephant", "Progress to Level 88: 41.2%"},
-				{Items.PLAYER_HEAD, "[Lvl 100] Ender Dragon", "MAX LEVEL"},
-				{Items.PLAYER_HEAD, "[Lvl 64] Bee", "Progress to Level 65: 12%"},
-				{Items.PLAYER_HEAD, "[Lvl 99] Blue Whale", "Progress to Level 100: 93%"},
-				{Items.PLAYER_HEAD, "[Lvl 45] Rabbit", "Progress to Level 46: 30%"},
-				{Items.PLAYER_HEAD, "[Lvl 100] Griffin", "MAX LEVEL"},
-				{Items.PLAYER_HEAD, "[Lvl 72] Mithril Golem", "Progress to Level 73: 66%"},
-				{Items.PLAYER_HEAD, "[Lvl 30] Sheep", "Progress to Level 31: 8%"},
-				{Items.PLAYER_HEAD, "[Lvl 100] Scatha", "MAX LEVEL"},
+		Object[][] pets = {{Items.PLAYER_HEAD, "§7[Lvl 100] §6Golden Dragon", "MAX LEVEL"},
+				{Items.PLAYER_HEAD, "§7[Lvl 87] §6Elephant", "Progress to Level 88: 41.2%"},
+				{Items.PLAYER_HEAD, "§7[Lvl 100] §5Ender Dragon", "MAX LEVEL"},
+				{Items.PLAYER_HEAD, "§7[Lvl 64] §9Bee", "Progress to Level 65: 12%"},
+				{Items.PLAYER_HEAD, "§7[Lvl 99] §6Blue Whale", "Progress to Level 100: 93%"},
+				{Items.PLAYER_HEAD, "§7[Lvl 45] §aRabbit", "Progress to Level 46: 30%"},
+				{Items.PLAYER_HEAD, "§7[Lvl 100] §dGriffin", "MAX LEVEL"},
+				{Items.PLAYER_HEAD, "§7[Lvl 72] §6Mithril Golem", "Progress to Level 73: 66%"},
+				{Items.PLAYER_HEAD, "§7[Lvl 30] §fSheep", "Progress to Level 31: 8%"},
+				{Items.PLAYER_HEAD, "§7[Lvl 100] §5Scatha", "MAX LEVEL"},
 				{Items.BONE, "Pet Score Rewards", "Pet Score: 182", "Magic Find: +3"}};
 		for (int i = 0; i < pets.length; i++)
 			put(c, 10 + i + (i / 7) * 2, (Item) pets[i][0], (String) pets[i][1], (String) pets[i][2]);

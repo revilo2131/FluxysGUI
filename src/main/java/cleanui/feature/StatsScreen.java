@@ -10,7 +10,6 @@ import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemLore;
@@ -66,7 +65,7 @@ public final class StatsScreen extends MenuPage {
 			if (lore != null)
 				for (Component c : lore.lines()) {
 					StatParser.Stat s = StatParser.stat(ChatFormatting.stripFormatting(c.getString()));
-					if (s != null) lines.add(new Line(s, colorOf(c)));
+					if (s != null) lines.add(new Line(s, Theme.colorOf(c)));
 				}
 			if (!lines.isEmpty()) cats.add(new Category(item, lines));
 		}
@@ -80,24 +79,6 @@ public final class StatsScreen extends MenuPage {
 			if (!item.name().isEmpty() && !NAV.contains(item.name()) && cats.stream().noneMatch(c -> c.item() == item)) gear.add(item);
 		gear.sort(Comparator.comparingInt((MenuItem i) -> i.slot() % 9).thenComparingInt(i -> i.slot() / 9));
 		return gear;
-	}
-
-	/** First colour in the line that isn't plain gray/white (the stat symbol's colour), else body text. */
-	private static int colorOf(Component c) {
-		for (Component part : c.toFlatList()) {
-			TextColor tc = part.getStyle().getColor();
-			if (tc == null) continue;
-			int v = tc.getValue();
-			if (v != 0xAAAAAA && v != 0x555555 && v != 0xFFFFFF) return v;
-		}
-		// legacy "§c❤ Health" text instead of styles
-		String s = c.getString();
-		for (int i = s.indexOf('§'); i >= 0 && i + 1 < s.length(); i = s.indexOf('§', i + 1)) {
-			ChatFormatting f = ChatFormatting.getByCode(s.charAt(i + 1));
-			TextColor tc = f != null ? TextColor.fromLegacyFormat(f) : null; // null for bold etc.
-			if (tc != null && f != ChatFormatting.GRAY && f != ChatFormatting.DARK_GRAY && f != ChatFormatting.WHITE) return tc.getValue();
-		}
-		return Theme.TEXT;
 	}
 
 	/** Each menu column becomes a gear column (armor, equipment, ...), packed top-down: {x, y} per gear item. */

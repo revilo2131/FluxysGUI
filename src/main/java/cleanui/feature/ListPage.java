@@ -186,12 +186,15 @@ public final class ListPage extends MenuPage {
 		int tx = x + (tall ? 30 : 24), right = x + w - 6;
 		String name = e.name().replaceFirst(" Collections?$", "");
 		String tier = e.tier() < 0 ? null : e.arabic() ? String.valueOf(e.tier()) : CollectionParser.roman(e.tier());
-		int tierColor = e.maxed() ? Theme.ACCENT : Theme.FRAME;
+		boolean pet = mode == Mode.PETS;
+		// pets: level 100 (or 200, Golden Dragon) is gold; everything else gold only when maxed
+		int tierColor = (pet ? e.tier() == 100 || e.tier() == 200 : e.maxed()) ? Theme.ACCENT : Theme.FRAME;
 		int nameY = tall ? y + 7 : y + (th - 8) / 2 - 1;
 		// tall tiles: the name gets the whole first line, the tier badge sits on the second
 		int bw = !tall && tier != null ? Theme.badge(g, font, tier, right, nameY - 1, tierColor, a) : 0;
 		String shown = Theme.fit(font, name, right - tx - (bw > 0 ? bw + 4 : 0));
-		if (e.maxed()) Theme.shimmer(g, font, shown, tx, nameY, a);
+		if (pet) g.text(font, shown, tx, nameY, Theme.argb(Theme.colorOf(t.item().stack().getHoverName()), a), true); // rarity colour
+		else if (e.maxed()) Theme.shimmer(g, font, shown, tx, nameY, a);
 		else g.text(font, shown, tx, nameY, Theme.argb(locked ? Theme.TEXT_MUTED : tall ? Theme.TITLE : Theme.TEXT, a), true);
 
 		if (tall) {
