@@ -1,5 +1,7 @@
 package cleanui.feature;
 
+import cleanui.data.SkyblockItems;
+import cleanui.skyblock.LoadoutParser;
 import cleanui.skyblock.TrackParser;
 import cleanui.ui.Anim;
 import cleanui.ui.Theme;
@@ -15,26 +17,22 @@ import net.minecraft.world.item.Items;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 /**
- * Hypixel's "Loadouts" menu. Left: the loadout shown in the menu, as you wearing its armor, with
- * its equipment, pet and the menu's action buttons. Right: every loadout as a card with you
- * wearing it, the active one green. Clicks go to the real menu.
+ * Hypixel's "Loadouts" menu. Left: what you're wearing now (you in that armor, your equipment,
+ * pet and the menu's action buttons). Right: every loadout as a card with you wearing its armor,
+ * the one in use green, empty ones grey. Clicks go to the real menu (left: equip, right: edit).
  * <p>
- * Layout read from the menu (screenshot, 2026-11-21): action buttons in column 0, equipment in
- * column 1, armor in column 2 (helmet to boots), pet in column 3, loadouts in columns 5-7.
- * The menu only holds the shown loadout's armor; the others show their icon as a helmet, plus the
- * armor remembered from when they were last the shown one.
+ * Layout from the real menu (game log, 2026-11-21): action buttons in column 0, equipment in
+ * column 1, armor in column 2 (helmet to boots), pet in column 3, loadouts in columns 5-7. Each
+ * loadout lists its armor by name ("Helmet: Necrotic Wise Dragon Helmet"); the actual items come
+ * from Hypixel's public item list ({@link SkyblockItems}).
  */
 public final class LoadoutsScreen extends MenuPage {
 	private static final EquipmentSlot[] ARMOR = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
 	private static final int LEFT_W = 150, GRID_X = LEFT_W + 10, GRID_W = BW - GRID_X, GRID_COLS = 6, GAP = 4, BUTTON_H = 18;
 	private static final int ACTIVE = 0x4CC36A, READY = 0x4F7BD9, EMPTY = 0x3A4150;
-	/** Armor seen per loadout name this session (the menu only shows one loadout's armor at a time). */
-	// shortcut: kept in memory only; save it like StorageCache if people want it across restarts
-	private static final Map<String, ItemStack[]> REMEMBERED = new HashMap<>();
 
 	private final Map<Integer, SkinModel> models = new HashMap<>();
 	private final Map<Integer, Anim> hover = new HashMap<>();
@@ -87,20 +85,38 @@ public final class LoadoutsScreen extends MenuPage {
 				armor[row - 1] = i.stack();
 			} else if (col == 3 && pet == null) pet = i;
 		}
-		// remember the shown loadout's armor under the active loadout's name
-		MenuItem active = loadouts.stream().filter(LoadoutsScreen::isActive).findFirst().orElse(null);
-		if (active != null && !armorItems.isEmpty()) REMEMBERED.put(active.name(), armor.clone());
 		return new Layout(actions, equipment, armor, armorItems, pet, loadouts, prev, next);
 	}
 
-	/** The loadout in use: Hypixel marks it in its text, or makes it glow. */
+	private static LoadoutParser.Loadout parsed(MenuItem i) {
+		return LoadoutParser.parse(i.lore());
+	}
+
+	/** The loadout in use: the only one you can edit but not equip. */
 	private static boolean isActive(MenuItem i) {
-		return i.stack().hasFoil() || i.lore().stream().map(l -> l.toLowerCase(Locale.ROOT))
-				.anyMatch(l -> l.contains("selected") || l.contains("equipped") || l.contains("currently active") || l.contains("in use"));
+		LoadoutParser.Loadout l = parsed(i);
+		return l != null && l.active();
 	}
 
 	private static boolean usable(MenuItem i) {
-		return !pane(i);
+		LoadoutParser.Loadout l = parsed(i);
+		return l != null ? !l.empty() : !pane(i);
+	}
+
+	/** The loadout's armor as real items (from their names); its own icon as the helmet until the item list has loaded. */
+	private static ItemStack[] armorOf(MenuItem lo) {
+		LoadoutParser.Loadout l = parsed(lo);
+		ItemStack[] out = {ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY};
+		if (l == null) {
+			out[0] = lo.stack();
+			return out;
+		}
+		for (int p = 0; p < 4; p++) {
+			ItemStack s = l.armor()[p] != null ? SkyblockItems.stack(l.armor()[p]) : null;
+			if (s != null) out[p] = s;
+		}
+		if (out[0].isEmpty() && l.armor()[0] != null) out[0] = lo.stack();
+		return out;
 	}
 
 	private float hoverOf(int key, boolean over) {
@@ -143,7 +159,7 @@ public final class LoadoutsScreen extends MenuPage {
 	private ItemStack extractShown(GuiGraphicsExtractor g, Layout l, int mouseX, int mouseY, float a) {
 		int x = bx(), y = by(), h = BH - BUTTON_H - 6 - 26;
 		ItemStack tooltip = null;
-		Theme.divider(g, font, "SHOWN LOADOUT", x, y, LEFT_W, a);
+		Theme.divider(g, font, "WEARING NOW", x, y, LEFT_W, a);
 		int cy = y + 12;
 		Theme.box(g, x, cy, LEFT_W, h - 12, Theme.ROW, a, Theme.mix(Theme.LINE, ACTIVE, 0.5f), a);
 		SkinModel m = model(-1);
@@ -207,10 +223,8 @@ public final class LoadoutsScreen extends MenuPage {
 					Theme.mix(Theme.mix(color, Theme.LINE, 0.3f), 0xFFFFFF, 0.35f * hf), a);
 			if (active) g.fill(p[0] + 1, y + 1, p[0] + w - 1, y + 3, Theme.argb(ACTIVE, a));
 			if (usable) {
-				// its remembered armor, else its icon worn as a helmet
-				ItemStack[] armor = REMEMBERED.getOrDefault(lo.name(), new ItemStack[]{lo.stack(), ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY});
 				SkinModel m = model(lo.slot());
-				dress(m, armor);
+				dress(m, armorOf(lo));
 				if (a > 0.5f)
 					InventoryScreen.extractEntityInInventoryFollowsMouse(g, p[0] + 2, y + 4, p[0] + w - 2, y + h - 14, Math.min(40, h / 3), 0.0625f, mouseX, mouseY, m);
 			} else Theme.item(g, lo.stack(), p[0] + (w - 16) / 2, y + (h - 16) / 2 - 6, 16, a);

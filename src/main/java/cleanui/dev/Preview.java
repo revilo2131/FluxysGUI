@@ -406,10 +406,23 @@ public final class Preview {
 		int[] slots = {14, 15, 16, 23, 24, 25, 32, 33, 34, 41};
 		Item[] icons = {Items.DIAMOND_HELMET, Items.GOLDEN_HELMET, Items.NETHERITE_HELMET, Items.GOLDEN_HELMET, Items.GOLDEN_HELMET,
 				Items.GOLDEN_HELMET, Items.DIAMOND_HELMET, Items.GOLDEN_HELMET, Items.NETHERITE_HELMET, Items.LEATHER_HELMET};
+		// real armor names from the user's menu (game log, 2026-11-21); 9 is in use, 11-12 blank
+		String[][] sets = {{"Necrotic Wise Dragon Helmet", "Loving Wise Dragon Chestplate", "Necrotic Wise Dragon Leggings", "Necrotic Wise Dragon Boots"},
+				{"Jaded Helmet of Divan", "Jaded Chestplate of Divan", "Jaded Leggings of Divan", "Jaded Boots of Divan"},
+				{"Jaded Mineral Helmet", "Jaded Glossy Mineral Chestplate", "Jaded Glossy Mineral Leggings", "Jaded Glossy Mineral Boots"},
+				{"Ancient Strong Dragon Helmet", "Ancient Strong Dragon Chestplate", "Ancient Strong Dragon Leggings", "Ancient Strong Dragon Boots"},
+				{"Jaded Helmet of Divan", "Jaded Chestplate of Divan", "Jaded Leggings of Divan", "Jaded Boots of Divan"},
+				{"Jaded Helmet of Divan", "Jaded Chestplate of Divan", "Jaded Leggings of Divan", "Jaded Boots of Divan"},
+				{" Ancient Shadow Assassin Helmet", " Ancient Shadow Assassin Chestplate", " Ancient Shadow Assassin Leggings", " Ancient Shadow Assassin Boots"},
+				{"Ancient Mastiff Crown", "Ancient Mastiff Chestplate", "Ancient Mastiff Leggings", "Ancient Mastiff Boots"},
+				{"Jaded Mineral Helmet", "Jaded Glossy Mineral Chestplate", "Jaded Glossy Mineral Leggings", "Jaded Glossy Mineral Boots"},
+				{"Werewolf Helmet", "Werewolf Chestplate", "Werewolf Leggings", "Werewolf Boots"}};
 		for (int i = 0; i < slots.length; i++)
-			put(c, slots[i], icons[i], "Loadout " + (i + 1), i == 8 ? "SELECTED" : "Click to equip!");
-		put(c, 42, pane(DyeColor.GRAY), "Locked Loadout", "Unlock more loadouts!");
-		put(c, 43, pane(DyeColor.GRAY), "Locked Loadout", "Unlock more loadouts!");
+			put(c, slots[i], icons[i], "Loadout " + (i + 1), "Helmet: " + sets[i][0], "Chestplate: " + sets[i][1], "Leggings: " + sets[i][2],
+					"Boots: " + sets[i][3], "", "Pet: None", "", i == 8 ? "Right-click to edit" : "Left-click to equip!", i == 8 ? "" : "Right-click to edit");
+		for (int s : new int[]{42, 43})
+			put(c, s, pane(DyeColor.GRAY), "Loadout " + (s - 31), "Helmet: None", "Chestplate: None", "Leggings: None", "Boots: None", "", "Pet: None", "",
+					"Right-click to edit", "", "You must customize this loadout", "before you can equip it!");
 		put(c, 44, Items.ARROW, "Next Page");
 		put(c, 48, Items.ARROW, "Go Back");
 		put(c, 49, Items.BARRIER, "Close");
