@@ -74,6 +74,7 @@ public final class Preview {
 			new Shot("settings", mc -> themed("cyan", m -> new SettingsScreen(fakeSkyBlockMenu(m)), mc), -1, -1),
 			new Shot("scatha", mc -> themed("cyan", m -> new ScathaSettingsScreen(fakeSkyBlockMenu(m)), mc), -1, -1),
 			new Shot("nucleus-settings", mc -> themed("cyan", m -> new cleanui.feature.NucleusSettingsScreen(fakeSkyBlockMenu(m)), mc), -1, -1),
+			new Shot("vanguard-settings", mc -> themed("cyan", m -> new cleanui.feature.VanguardSettingsScreen(fakeSkyBlockMenu(m)), mc), -1, -1),
 			// screenshots land 1.75s after the shot starts: mid-roll, and just after a legendary landing
 			new Shot("roulette-roll", mc -> roulette(-2, 1500), -1, -1),
 			new Shot("roulette-portal", mc -> roulette(1, 4650), -1, -1),

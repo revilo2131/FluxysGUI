@@ -495,6 +495,7 @@ public final class ScathaSlots {
 	}
 
 	private static boolean muted; // sounds off for a moment (confetti without its jingle)
+	static boolean vanguard; // the sounds playing now are the Vanguard animation's: its own Sounds setting decides
 
 	/** Just the confetti, no jingle: for moments that bring their own sound (Vanguard drops). */
 	static void confettiOnly(int tier) {
@@ -570,7 +571,7 @@ public final class ScathaSlots {
 	}
 
 	static void sound(SoundEvent sound, float pitch, float volume) {
-		if (Config.get().scathaSounds && !muted) Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(sound, pitch, volume));
+		if ((vanguard ? Config.get().vanguardSounds : Config.get().scathaSounds) && !muted) Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(sound, pitch, volume));
 	}
 
 	private static void reelStop(int r) {

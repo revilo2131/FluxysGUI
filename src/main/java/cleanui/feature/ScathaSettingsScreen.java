@@ -26,7 +26,7 @@ public final class ScathaSettingsScreen extends Window {
 					c -> c.scathaSlots, c -> c.scathaSlots = !c.scathaSlots),
 			new SettingsScreen.Toggle("Hide chat at low HP", "Chat disappears while a Scatha is on 3 HP or less, so a pet drop can't spoil the roll.",
 					c -> c.scathaHideChat, c -> c.scathaHideChat = !c.scathaHideChat),
-			new SettingsScreen.Toggle("Blur while rolling", "Blur the world and hide every other UI while the reels spin, and for the Vanguard snake. Off: they draw over the HUD and you keep mining.",
+			new SettingsScreen.Toggle("Blur while rolling", "Blur the world and hide every other UI while the reels spin. Off: they draw over the HUD and you keep mining.",
 					c -> c.scathaFocus, c -> c.scathaFocus = !c.scathaFocus),
 			new SettingsScreen.Toggle("Then I walk in", "On a pet drop the buff Scatha stomps in from the right: \"Then I scathe in\", with the rarity. Replaces the rarity roll and the portal.",
 					c -> c.scathaWalkIn, c -> c.scathaWalkIn = !c.scathaWalkIn),
@@ -35,11 +35,7 @@ public final class ScathaSettingsScreen extends Window {
 			new SettingsScreen.Toggle("Auto coords", "When a Scatha spawns next to you, send your coordinates in party chat (/pc). At most once every 15 seconds.",
 					c -> c.scathaAutoCoords, c -> c.scathaAutoCoords = !c.scathaAutoCoords),
 			new SettingsScreen.Toggle("Music","Note block build-up when the pet is certain, and a drop as the rarity shows. Needs Sounds on.",
-					c -> c.scathaMusic, c -> c.scathaMusic = !c.scathaMusic),
-			new SettingsScreen.Toggle("Vanguard animation", "Looting a Vanguard corpse plays an animation (the snake, or the lockpick below). Snake: a 3D ouroboros spins. A rare drop (Frostbitten Dye, Shattered Locket, Caged Wisp, Skeleton Key): a katana cuts it in half and the drop bursts out. None: its eyes glow red.",
-					c -> c.vanguardSnake, c -> c.vanguardSnake = !c.vanguardSnake),
-			new SettingsScreen.Toggle("Vanguard lockpick", "Vanguard corpses play a lock being picked instead of the snake: each pin raises the rarity. 6/6 Frostbitten Dye, 5/6 Shattered Locket, 4/6 Caged Wisp or Skeleton Key.",
-					c -> c.vanguardLockpick, c -> c.vanguardLockpick = !c.vanguardLockpick));
+					c -> c.scathaMusic, c -> c.scathaMusic = !c.scathaMusic));
 
 	private static final int TEST_STEP = 20;
 

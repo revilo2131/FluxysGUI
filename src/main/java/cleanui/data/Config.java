@@ -77,6 +77,14 @@ public final class Config {
 	public boolean vanguardSnake = true;
 	/** Vanguard corpses play the lock being picked (6/6 dye ... 4/6 wisp or key) instead of the snake. */
 	public boolean vanguardLockpick = false;
+	/** Vanguard animations over a blurred world with the rest of the HUD hidden (you can still walk). */
+	public boolean vanguardFocus = true;
+	/** Vanguard sounds: Wither spawn, the cut, the picks and each drop's own sound. */
+	public boolean vanguardSounds = true;
+	/** Confetti when a rare drop bursts out. */
+	public boolean vanguardConfetti = true;
+	/** The drop's coin value under its name. */
+	public boolean vanguardValues = true;
 	/** Fastest run, first crystal found to the fifth placed (ms; 0 = none yet). */
 	public long nucleusBestMs = 0;
 	/** Personal Hypixel API key for networth; stays on this PC, only sent to api.hypixel.net. */

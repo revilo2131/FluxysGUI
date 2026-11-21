@@ -158,13 +158,14 @@ public final class VanguardSnake {
 
 	/** A drop's value from the price list, like "≈ 400M coins", or null if not known (yet). */
 	static String value(Drop d) {
+		if (!Config.get().vanguardValues) return null;
 		Double p = cleanui.data.Networth.price(d.id());
 		return p == null || p <= 0 ? null : "≈ " + cleanui.skyblock.SkillParser.compact(String.valueOf(Math.round(p))) + " coins";
 	}
 
 	/** Swapped in for the whole HUD over a blurred world while it runs (HudMixin). */
 	public static boolean takeover() {
-		return start >= 0 && Config.get().scathaFocus;
+		return start >= 0 && Config.get().vanguardFocus;
 	}
 
 	// ---- motion ----
@@ -180,6 +181,15 @@ public final class VanguardSnake {
 
 	public static void tick(Minecraft mc) {
 		if (start < 0) return;
+		ScathaSlots.vanguard = true;
+		try {
+			tickNow(mc);
+		} finally {
+			ScathaSlots.vanguard = false;
+		}
+	}
+
+	private static void tickNow(Minecraft mc) {
 		long t = now();
 		if (t > end()) {
 			start = -1;
@@ -193,7 +203,7 @@ public final class VanguardSnake {
 		if (stage == 0 && t >= 0) {
 			stage = 1;
 			// the Wither spawn, cut to ~3 s: quick fade in, fade out at the end
-			if (Config.get().scathaSounds) mc.getSoundManager().play(new FadingSound(SoundEvents.WITHER_SPAWN, 1f, 0.9f, 60, 3, 12));
+			if (Config.get().vanguardSounds) mc.getSoundManager().play(new FadingSound(SoundEvents.WITHER_SPAWN, 1f, 0.9f, 60, 3, 12));
 		}
 		if (win()) {
 			if (stage == 1 && t >= SPIN_END) {
@@ -207,7 +217,7 @@ public final class VanguardSnake {
 			}
 			if (stage == 3 && t >= POP) {
 				stage = 4;
-				ScathaSlots.confettiOnly(2);
+				if (Config.get().vanguardConfetti) ScathaSlots.confettiOnly(2);
 				dropSound(VanguardLock.best(got));
 			}
 		} else {

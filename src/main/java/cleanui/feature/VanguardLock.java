@@ -28,7 +28,7 @@ final class VanguardLock {
 	private static final int TUG_END = 1500, AWAY_END = 2300;
 	private static final int PINS = 6;
 	private static final int[] KEY_LEN = {12, 9, 14, 10, 13, 11};
-	private static final float SHEAR = 50, KEYWAY = 72, DRIVER = 14, PIN_W = 10;
+	private static final float SHEAR = 50, KEYWAY = 72, DRIVER = 14, PIN_W = 10, DEPTH = 5;
 	private static final int[] TIER = {0x9A9A9A, 0xFFFFFF, 0x55FF55, 0x5555FF, 0xAA00AA, 0xFFAA00, 0xFF55FF};
 	private static final String[] TIER_NAME = {"", "COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY", "MYTHIC"};
 	private static final int BRASS = 0xC8A040, BRASS_HI = 0xF2D886, BRASS_LO = 0x7A5A18, STEEL = 0xB8C0C8, HOLE = 0x0E0C0A;
@@ -119,7 +119,7 @@ final class VanguardLock {
 		if (o >= 0 && t >= o && once(1 << 26)) ScathaSlots.sound(SoundEvents.VAULT_OPEN_SHUTTER, 1f, 1f);
 		if (p >= 0 && t >= p && once(1 << 27)) {
 			ScathaSlots.sound(SoundEvents.VAULT_EJECT_ITEM, 1f, 1f);
-			ScathaSlots.confettiOnly(2);
+			if (cleanui.data.Config.get().vanguardConfetti) ScathaSlots.confettiOnly(2);
 			VanguardSnake.dropSound(best(got));
 		}
 		if (o < 0) { // failed: tugs, then it drops away
@@ -145,12 +145,51 @@ final class VanguardLock {
 		g.fill(Math.round(lx + x0 * u), Math.round(ly + y0 * u), Math.round(lx + x1 * u), Math.round(ly + y1 * u), col(rgb));
 	}
 
-	/** A brass block: lit top edge, dark bottom edge, soft vertical shading. */
+	/** A brass block: lit top edge, dark bottom edge, soft vertical shading, faint brushed lines. */
 	private static void brass(float x0, float y0, float x1, float y1, int base) {
 		g.fillGradient(Math.round(lx + x0 * u), Math.round(ly + y0 * u), Math.round(lx + x1 * u), Math.round(ly + y1 * u),
 				col(Theme.mix(base, BRASS_HI, 0.35f)), col(Theme.mix(base, BRASS_LO, 0.45f)));
+		for (float y = y0 + 3; y < y1 - 2; y += 3.5f) rect(x0 + 1, y, x1 - 1, y + 0.3f, Theme.mix(base, BRASS_HI, 0.25f)); // brushed
 		rect(x0, y0, x1, y0 + 0.8f, Theme.mix(base, 0xFFFFFF, 0.45f));
+		rect(x0, y0, x0 + 0.6f, y1, Theme.mix(base, 0xFFFFFF, 0.25f));
 		rect(x0, y1 - 0.8f, x1, y1, BRASS_LO);
+	}
+
+	/** The block's depth, drawn before its front: a lit top face and a shaded right side, going back up-right. */
+	private static void depth(float x0, float y0, float x1, float y1, int base) {
+		int d = Math.round(DEPTH * u), X0 = Math.round(lx + x0 * u), Y0 = Math.round(ly + y0 * u), X1 = Math.round(lx + x1 * u), Y1 = Math.round(ly + y1 * u);
+		for (int i = 1; i <= d; i++) {
+			float k = i / (float) d;
+			g.fill(X0 + i, Y0 - i, X1 + i, Y0 - i + 1, col(Theme.mix(Theme.mix(base, BRASS_HI, 0.55f), base, k * 0.5f)));
+			g.fillGradient(X1 + i - 1, Y0 - i + 1, X1 + i, Y1 - i + 1, col(Theme.mix(base, BRASS_LO, 0.45f + 0.2f * k)), col(Theme.mix(base, 0x1A1006, 0.7f)));
+		}
+	}
+
+	/**
+	 * A round part seen from the side, lit from the left: vertical strips (a standing pin) or
+	 * horizontal bands (the plug), bright a third of the way across, dark at the edges.
+	 */
+	private static void cylinder(float x0, float y0, float x1, float y1, int base, boolean standing) {
+		int strips = 7;
+		for (int s = 0; s < strips; s++) {
+			float a = s / (float) strips, b = (s + 1) / (float) strips, mid = (a + b) / 2;
+			float light = (float) Math.sin(Math.PI * Math.min(1, mid * 1.4f)) * 0.9f - 0.25f; // peak a third across
+			int c = light > 0 ? Theme.mix(base, BRASS_HI, light * 0.7f) : Theme.mix(base, BRASS_LO, -light * 1.6f);
+			if (standing) rect(x0 + (x1 - x0) * a, y0, x0 + (x1 - x0) * b, y1, c);
+			else rect(x0, y0 + (y1 - y0) * a, x1, y0 + (y1 - y0) * b, c);
+		}
+	}
+
+	/** A slotted screw head (units, radius r). */
+	private static void screw(float x, float y, float r, double slot) {
+		ScathaRoulette.ellipse(g, lx + x * u, ly + y * u, (r + 0.6f) * u, (r + 0.6f) * u, col(BRASS_LO), col(0x2A1E08));
+		ScathaRoulette.ellipse(g, lx + x * u, ly + y * u, r * u, r * u, col(Theme.mix(BRASS, BRASS_HI, 0.5f)), col(BRASS_LO));
+		Matrix3x2fStack pose = g.pose();
+		pose.pushMatrix();
+		pose.translate(lx + x * u, ly + y * u);
+		pose.rotate((float) slot);
+		g.fill(Math.round(-r * u), -1, Math.round(r * u), 1, col(0x2A1E08));
+		pose.popMatrix();
 	}
 
 	static void render(GuiGraphicsExtractor graphics, long t, long end, List<VanguardSnake.Drop> got) {
@@ -175,23 +214,50 @@ final class VanguardLock {
 		VanguardSnake.Drop drop = best(got);
 		String part = o >= 0 && drop != null ? drop.name() : "";
 
+		// a warm light behind, and the lock's shadow on the "floor"
+		for (int r = 6; r >= 1; r--) // soft: stacked faint ellipses, brightest in the middle
+			ScathaRoulette.ellipse(g, lx + 70 * u, ly + 45 * u, 20 * r * u, 12 * r * u, Math.round(9 * alpha / 255f) << 24 | 0xFFD890, Math.round(9 * alpha / 255f) << 24 | 0xFFD890);
+		ScathaRoulette.ellipse(g, lx + 74 * u, ly + 96 * u, 82 * u, 7 * u, Math.round(150 * alpha / 255f) << 24, Math.round(40 * alpha / 255f) << 24);
+
 		// housing above the shear line, with the pin chambers (dye: it lifts away)
 		float lift = "Frostbitten Dye".equals(part) ? openK * 46 : 0;
 		ly -= lift * u;
 		int solid = alpha;
 		if (lift > 0) alpha = Math.round(solid * (1 - 0.85f * openK)); // fades as it lifts off
+		depth(0, 0, 140, SHEAR, BRASS);
 		brass(0, 0, 140, SHEAR, BRASS);
-		for (int i = 0; i < PINS; i++) rect(pinX(i) - 1, 3, pinX(i) + PIN_W + 1, SHEAR, HOLE);
+		for (int i = 0; i < PINS; i++) {
+			float x = pinX(i);
+			rect(x - 1, 3, x + PIN_W + 1, SHEAR, HOLE);
+			rect(x - 1, 3, x + 0.6f, SHEAR, 0x000000);                          // the chamber's shadowed wall
+			rect(x + PIN_W, 3, x + PIN_W + 1, SHEAR, 0x2A2010);                // and its lit wall
+			brass(x - 1.5f, 0.6f, x + PIN_W + 1.5f, 3, Theme.mix(BRASS, BRASS_HI, 0.2f)); // cap over the chamber
+			if (i < PINS - 1) { // machined groove between chambers
+				rect(x + PIN_W + 3.6f, 4, x + PIN_W + 4.2f, SHEAR - 2, BRASS_LO);
+				rect(x + PIN_W + 4.2f, 4, x + PIN_W + 4.6f, SHEAR - 2, BRASS_HI);
+			}
+		}
+		screw(7, 8, 2.4f, 0.6);
+		screw(133, 8, 2.4f, 2.1);
+		screw(7, 42, 2.4f, 1.3);
+		screw(133, 42, 2.4f, 0.2);
 		ly += lift * u;
-		// plug and keyway (dye: glows as the housing lifts; turn: a highlight sweeps down it)
-		brass(14, SHEAR, 126, 80, Theme.mix(BRASS, 0x000000, 0.06f));
+		// plug: a cylinder lying in the shell, pin chambers through it, the keyway under (dye: glows; turn: a highlight sweeps down it)
+		cylinder(14, SHEAR, 126, 80, Theme.mix(BRASS, 0x000000, 0.04f), false);
+		rect(14, SHEAR, 126, SHEAR + 0.5f, 0x2A1E08);
 		if (n == PINS && t >= pinStart(PINS)) {
 			float turn = smooth((t - pinStart(PINS)) / (float) TURN_MS);
 			rect(14, SHEAR + 30 * turn - 3, 126, SHEAR + 30 * turn, 0xFFF0B0);
 		}
-		for (int i = 0; i < PINS; i++) rect(pinX(i) - 1, SHEAR, pinX(i) + PIN_W + 1, KEYWAY, HOLE); // the pin chambers through the plug
+		for (int i = 0; i < PINS; i++) { // the pin chambers through the plug
+			rect(pinX(i) - 1, SHEAR, pinX(i) + PIN_W + 1, KEYWAY, HOLE);
+			rect(pinX(i) - 1, SHEAR, pinX(i) + 0.6f, KEYWAY, 0x000000);
+		}
+		// keyway: dark slot with a warded profile and light catching its lower lip
 		rect(14, KEYWAY, 126, 80, HOLE);
-		rect(14, KEYWAY, 126, KEYWAY + 1, 0x000000);
+		g.fillGradient(Math.round(lx + 14 * u), Math.round(ly + KEYWAY * u), Math.round(lx + 126 * u), Math.round(ly + (KEYWAY + 3) * u), col(0x000000), col(HOLE));
+		for (float x = 20; x < 124; x += 14) rect(x, KEYWAY + 2.5f, x + 6, KEYWAY + 3.4f, 0x2A2418); // wards
+		rect(14, 79.4f, 126, 80, Theme.mix(BRASS, BRASS_HI, 0.3f));
 		// pins and springs, in their chambers
 		for (int i = 0; i < PINS; i++) drawPin(i, t, n, failing, lift);
 		alpha = solid;
@@ -200,7 +266,9 @@ final class VanguardLock {
 		// bottom lip (key: it drops away as a drawer, opening a slot under the keyway)
 		float drawer = "Skeleton Key".equals(part) ? openK * 16 : 0;
 		if (drawer > 0) rect(14, 80, 126, 80 + drawer, 0x1A140C);
+		depth(0, 80 + drawer, 140, 90 + drawer, BRASS);
 		brass(0, 80 + drawer, 140, 90 + drawer, BRASS);
+		engrave(Minecraft.getInstance().font, "VANGUARD", 70, 82 + drawer);
 		if ("Frostbitten Dye".equals(part)) // the plug glows icy as the housing lifts
 			g.fill(Math.round(lx + 14 * u), Math.round(ly + SHEAR * u), Math.round(lx + 126 * u), Math.round(ly + 80 * u), Math.round(140 * openK * alpha / 255f) << 24 | 0xBFEFFF);
 		// front plate on the left, with the keyway hole (locket: it swings open like a door)
@@ -210,18 +278,23 @@ final class VanguardLock {
 			brass(-w * 0.15f, SHEAR, w, 80, Theme.mix(BRASS, 0x000000, 0.2f * openK));
 		} else {
 			brass(0, SHEAR, 14, 80, BRASS);
+			rect(3.4f, KEYWAY - 0.6f, 14, 80.6f, BRASS_LO); // bevel round the keyway hole
 			rect(4, KEYWAY, 14, 80, HOLE);
+			rivet(7, 56);
+			rivet(7, 66);
 		}
-		// end cap on the right (wisp: it pops off, spins away and falls)
+		// end cap on the right, knurled (wisp: it pops off, spins away and falls)
 		if ("Caged Wisp".equals(part)) {
 			rect(126, SHEAR, 140, 80, 0x1A140C);
 			float cx = 18 * openK, cy = -16 * openK + 95 * openK * openK; // pops off and drops
-			brass(126 + cx, SHEAR + cy, 140 + cx, 80 + cy, Theme.mix(BRASS, 0x000000, 0.15f));
-		} else brass(126, SHEAR, 140, 80, BRASS);
+			endCap(126 + cx, SHEAR + cy, Theme.mix(BRASS, 0x000000, 0.15f));
+		} else endCap(126, SHEAR, BRASS);
 		// tension wrench (turns with the plug on 6/6) and the hook pick
 		float wrenchTurn = n == PINS && t >= pinStart(PINS) ? smooth((t - pinStart(PINS)) / (float) TURN_MS) * 5 : 0;
 		rect(6, 76, 18, 78, 0x3A3A40);
+		rect(6, 76, 18, 76.6f, 0xA8B0B8);
 		rect(6 + wrenchTurn, 78, 9 + wrenchTurn, 98, 0x3A3A40);
+		rect(6 + wrenchTurn, 78, 7 + wrenchTurn, 98, 0x8A929A);
 		drawPick(t, n, failing);
 
 		// glow from the opened part
@@ -233,6 +306,34 @@ final class VanguardLock {
 		drawMeter(font, t, n, failing);
 		if (failing && t > jamAt + 700) caption(font, away > 0 ? "the lock won't give..." : "STUCK!", sw / 2f, ly + 100 * u, 1.6f, away > 0 ? 0xAAAAAA : 0xFF5555);
 		if (p >= 0 && t >= p) drawPopup(font, t - p, drop, part, sw, sh, n);
+	}
+
+	/** The right end cap at (x, y), 14 x 30 units, with depth and diagonal knurling. */
+	private static void endCap(float x, float y, int base) {
+		depth(x, y, x + 14, y + 30, base);
+		brass(x, y, x + 14, y + 30, base);
+		for (float k = -30; k < 14; k += 2.4f) // knurl: short diagonal grooves
+			for (float s = 0; s < 30; s += 1) {
+				float px = x + k + s * 0.5f;
+				if (px > x + 1.5f && px < x + 12.5f && (int) (s / 2) % 2 == 0) rect(px, y + 1.5f + s * 0.9f, px + 0.6f, y + 2.1f + s * 0.9f, BRASS_LO);
+			}
+	}
+
+	private static void rivet(float x, float y) {
+		ScathaRoulette.ellipse(g, lx + x * u, ly + y * u, 1.6f * u, 1.6f * u, col(BRASS_HI), col(BRASS_LO));
+	}
+
+	/** Stamped text: dark letters with a light edge under them (units). */
+	private static void engrave(Font font, String text, float x, float y) {
+		Matrix3x2fStack pose = g.pose();
+		pose.pushMatrix();
+		pose.translate(lx + x * u, ly + y * u);
+		float s = u * 0.75f;
+		pose.scale(s, s);
+		int w = font.width(text);
+		g.text(font, text, -w / 2, 1, col(Theme.mix(BRASS, BRASS_HI, 0.6f)), false);
+		g.text(font, text, -w / 2, 0, col(0x4A3410), false);
+		pose.popMatrix();
 	}
 
 	private static float pinX(int i) {
@@ -274,19 +375,27 @@ final class VanguardLock {
 		// in the housing (lifts with it on 6/6): spring, then driver pin
 		float driverBottom = KEYWAY - k - driverLift, driverTop = driverBottom - DRIVER;
 		ly -= housingLift * u;
-		float coilTop = 4, coilBottom = Math.min(driverTop, SHEAR);
-		for (int c = 0; c < 8; c++) {
-			float y = coilTop + (coilBottom - coilTop) * c / 8f;
-			rect(x + (c % 2 == 0 ? 0.5f : 1.5f), y, x + PIN_W - (c % 2 == 0 ? 1.5f : 0.5f), y + 1.1f, STEEL);
+		// spring: slanted steel coils, each lit on top and dark underneath, squeezing as the pin rises
+		float coilTop = 3.4f, coilBottom = Math.min(driverTop, SHEAR);
+		for (int c = 0; c < 9; c++) {
+			float y = coilTop + (coilBottom - coilTop) * c / 9f, h = Math.max(0.7f, (coilBottom - coilTop) / 9f * 0.55f);
+			rect(x + 0.4f, y, x + PIN_W / 2, y + h, Theme.mix(STEEL, 0x000000, 0.25f));
+			rect(x + PIN_W / 2, y + 0.4f, x + PIN_W - 0.4f, y + h + 0.4f, STEEL);
+			rect(x + 1.2f, y, x + PIN_W - 1.2f, y + 0.35f, 0xF0F4F8);
 		}
 		boolean flash = set && t - b - PUSH_END < 200;
-		if (driverTop < SHEAR) brass(x, driverTop, x + PIN_W, Math.min(driverBottom, SHEAR), flash ? 0xFFE89A : BRASS);
+		int driverColor = flash ? 0xFFE89A : BRASS;
+		if (driverTop < SHEAR) cylinder(x, driverTop, x + PIN_W, Math.min(driverBottom, SHEAR), driverColor, true);
+		if (driverTop < SHEAR) rect(x, driverTop, x + PIN_W, driverTop + 0.6f, BRASS_HI);
 		ly += housingLift * u;
-		if (driverBottom > SHEAR) brass(x, Math.max(driverTop, SHEAR), x + PIN_W, driverBottom, flash ? 0xFFE89A : BRASS); // below the line: in the plug
-		// key pin in the plug, rounded tip down
+		if (driverBottom > SHEAR) cylinder(x, Math.max(driverTop, SHEAR), x + PIN_W, driverBottom, driverColor, true); // below the line: in the plug
+		// key pin in the plug: a slightly redder brass, chamfered top, rounded tip down
 		float kb = KEYWAY - keyLift, kt = kb - k;
-		brass(x + 0.5f, kt, x + PIN_W - 0.5f, kb - 1.5f, Theme.mix(BRASS, 0xD0B070, 0.4f));
-		rect(x + 2, kb - 1.5f, x + PIN_W - 2, kb, Theme.mix(BRASS, BRASS_LO, 0.3f));
+		int keyColor = Theme.mix(BRASS, 0xD08850, 0.3f);
+		cylinder(x + 0.5f, kt + 0.6f, x + PIN_W - 0.5f, kb - 2, keyColor, true);
+		cylinder(x + 1.2f, kt, x + PIN_W - 1.2f, kt + 0.6f, Theme.mix(keyColor, BRASS_HI, 0.4f), true);
+		cylinder(x + 1.6f, kb - 2, x + PIN_W - 1.6f, kb - 0.8f, keyColor, true);
+		cylinder(x + 3, kb - 0.8f, x + PIN_W - 3, kb, Theme.mix(keyColor, BRASS_LO, 0.3f), true);
 		if (flash) rect(x - 1, SHEAR - 0.8f, x + PIN_W + 1, SHEAR + 0.8f, 0x8CFF8C); // set: the shear line lights green
 	}
 
@@ -318,11 +427,17 @@ final class VanguardLock {
 			tip -= 5 * (float) Math.max(0, Math.sin(tug * Math.PI)) * (tug < 3.2f ? 1 : 0);
 		}
 		float y = KEYWAY + 5 - lift * 0.35f;
-		rect(-90, y, tip - 3, y + 1.6f, 0x9AA2AA);       // shaft
-		rect(-90, y, tip - 3, y + 0.5f, 0xE0E6EC);
-		rect(tip - 4, y - 4 - lift * 0.65f, tip, y + 1.6f, 0x9AA2AA); // hook, pressing up on the key pin
-		rect(tip - 4, y - 4 - lift * 0.65f, tip - 2.6f, y + 1.6f, 0xE0E6EC);
-		rect(-120, y - 1.5f, -90, y + 3, 0x5A2030);       // handle (out of the lock)
+		rect(-90, y, tip - 3, y + 1.6f, 0x8A929A);       // shaft: polished steel, bright top edge, dark under
+		rect(-90, y, tip - 3, y + 0.5f, 0xEEF2F6);
+		rect(-90, y + 1.2f, tip - 3, y + 1.6f, 0x50585E);
+		rect(tip - 4, y - 4 - lift * 0.65f, tip, y + 1.6f, 0x8A929A); // hook, pressing up on the key pin
+		rect(tip - 4, y - 4 - lift * 0.65f, tip - 2.6f, y + 1.6f, 0xEEF2F6);
+		rect(tip - 4, y - 4.4f - lift * 0.65f, tip, y - 4 - lift * 0.65f, 0xFFFFFF);
+		// handle (out of the lock): dark grip with a red wrap, a ring where it meets the shaft
+		rect(-124, y - 2, -90, y + 3.6f, 0x2A1418);
+		for (float wx = -122; wx < -92; wx += 3) rect(wx, y - 2, wx + 1.4f, y + 3.6f, 0x7A2A3A);
+		rect(-124, y - 2, -90, y - 1.4f, 0xB06070);
+		rect(-91.5f, y - 2.6f, -89.5f, y + 4.2f, 0xC8A040);
 	}
 
 	/** Six segments up the right side, lit one per pin set, in the rarity it's reached. */
