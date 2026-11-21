@@ -76,6 +76,7 @@ public final class Preview {
 			new Shot("leveling-tile", Preview::fakeLeveling, 340, 262),
 			new Shot("hotm-reset", Preview::fakeHotmReset, -1, -1),
 			new Shot("hotm-swap", Preview::fakeHotmSwap, -1, -1),
+			new Shot("stats", Preview::fakeStats, -1, -1),
 			new Shot("rng", Preview::fakeRngMeter, -1, -1),
 			new Shot("rng-hover", Preview::fakeRngMeter, 330, 232));
 	private static final int START = 80, EACH = 40;
@@ -377,6 +378,29 @@ public final class Preview {
 		put(c, 48, Items.ARROW, "Go Back", "To SkyBlock Menu");
 		put(c, 50, Items.OAK_SIGN, "SkyBlock Levels in Chat", "View other players' SkyBlock Level.", "", "ENABLED", "", "Click to disable!");
 		return CleanUi.pageFor("SkyBlock Leveling", menu(mc, c, "SkyBlock Leveling"));
+	}
+
+	/** Guessed "Stats & Equipment" layout (not logged yet): armor + equipment columns, pet, stat items with § colours. */
+	private static Screen fakeStats(Minecraft mc) {
+		SimpleContainer c = new SimpleContainer(54);
+		put(c, 10, Items.DIAMOND_HELMET, "Divan's Helmet", "Mining Speed: +80");
+		put(c, 19, Items.DIAMOND_CHESTPLATE, "Divan's Chestplate");
+		put(c, 28, Items.DIAMOND_LEGGINGS, "Divan's Leggings");
+		put(c, 37, Items.DIAMOND_BOOTS, "Divan's Boots");
+		put(c, 11, Items.NAUTILUS_SHELL, "Dwarven Handwarmers");
+		put(c, 20, Items.LEATHER_CHESTPLATE, "Empty Cloak Slot");
+		put(c, 29, Items.LEAD, "Dwarven Belt");
+		put(c, 38, Items.STRING, "Empty Gloves Slot");
+		put(c, 47, Items.PLAYER_HEAD, "[Lvl 100] Mithril Golem", "Mining Pet");
+		put(c, 15, Items.IRON_SWORD, "Combat Stats", "§c❤ Health §f1,245", "§a❈ Defense §f612", "§c❁ Strength §f287", "§9☣ Crit Chance §f48%",
+				"§9☠ Crit Damage §f212%", "§e⚔ Bonus Attack Speed §f35%", "§b✎ Intelligence §f540", "§f✦ Speed §f156", "§c⫽ Ferocity §f12",
+				"§d♣ Pet Luck §f20", "§b✯ Magic Find §f145", "§c❣ Health Regen §f100", "", "§eClick to view!");
+		put(c, 16, Items.GOLDEN_PICKAXE, "Gathering Stats", "§6⸕ Mining Speed §f1,830", "§6☘ Mining Fortune §f310", "§6☘ Farming Fortune §f120",
+				"§6☘ Foraging Fortune §f40", "§3☯ Mining Wisdom §f12", "§9▚ Pristine §f4.5");
+		put(c, 24, Items.BOOK, "Wisdom Stats", "§3☯ Combat Wisdom §f30", "§3☯ Mining Wisdom §f12", "§3☯ Farming Wisdom §f5");
+		put(c, 25, Items.CLOCK, "Misc Stats", "§a≈ Swing Range §f3", "§c♨ Heat Resistance §f150", "§b❄ Cold Resistance §f20");
+		put(c, 48, Items.ARROW, "Go Back", "To SkyBlock Menu");
+		return CleanUi.pageFor("Stats & Equipment", menu(mc, c, "Stats & Equipment"));
 	}
 
 	/** Real "Crystal Nucleus RNG Meter" layout (game log, 2026-11-21). */
