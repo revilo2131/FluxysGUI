@@ -282,11 +282,7 @@ final class FinaleScenes {
 		long after = s.after();
 		float sky = 92 * u, unit = 50 * u;
 		// the sky: soft dark disc, two nebulae, twinkling stars
-		for (int k = 6; k >= 1; k--) {
-			float r = sky * (0.85f + 0.06f * k);
-			int c = argb(0x050818, 0.16f * a);
-			ScathaRoulette.ellipse(g, cx, cy, r, r * 0.86f, c, c);
-		}
+		glowOval(g, cx, cy, sky * 1.25f, sky * 1.08f, 0x050818, 1.6f * a); // soft dark edge
 		ScathaRoulette.ellipse(g, cx, cy, sky * 0.86f, sky * 0.74f, argb(0x070B22, 0.8f * a), argb(0x0B0820, 0.8f * a));
 		glowOval(g, cx - 30 * u, cy - 20 * u, 46 * u, 26 * u, 0x6A3AB0, 0.22f * a);
 		glowOval(g, cx + 36 * u, cy + 22 * u, 40 * u, 22 * u, 0x2A5AB0, 0.2f * a);

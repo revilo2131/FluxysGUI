@@ -266,23 +266,24 @@ final class NucleusFinale {
 		return r << 16 | g << 8 | bl;
 	}
 
-	/** A soft round glow: stacked see-through circles. */
+	private static final net.minecraft.resources.Identifier GLOW = net.minecraft.resources.Identifier.fromNamespaceAndPath("cleanui", "textures/gui/glow.png");
+
+	/** A soft round glow: one blit of a blurred disc (drawing it from circles costs thousands of fills a frame). */
 	static void glow(GuiGraphicsExtractor g, float x, float y, float r, int rgb, float a) {
-		if (a <= 0.01f || r < 1) return;
-		for (int k = 5; k >= 1; k--) {
-			float rr = r * k / 5f;
-			int c = argb(rgb, a * 0.22f);
-			ScathaRoulette.ellipse(g, x, y, rr, rr, c, c);
-		}
+		glowOval(g, x, y, r, r, rgb, a);
 	}
 
 	/** A soft glow squashed into an ellipse (for floors seen at an angle). */
 	static void glowOval(GuiGraphicsExtractor g, float x, float y, float rx, float ry, int rgb, float a) {
-		if (a <= 0.01f || rx < 1) return;
-		for (int k = 5; k >= 1; k--) {
-			int c = argb(rgb, a * 0.22f);
-			ScathaRoulette.ellipse(g, x, y, rx * k / 5f, ry * k / 5f, c, c);
-		}
+		if (a <= 0.01f || rx < 1 || ry < 0.5f) return;
+		// as bright in the middle as the old five stacked discs at 22% each (a > 1 is brighter, up to solid)
+		float centre = 1 - (float) Math.pow(1 - Math.min(1f, 0.22f * a), 5);
+		Matrix3x2fStack pose = g.pose();
+		pose.pushMatrix();
+		pose.translate(x - rx, y - ry);
+		pose.scale(rx / 32f, ry / 32f);
+		g.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, GLOW, 0, 0, 0, 0, 64, 64, 64, 64, argb(rgb, centre));
+		pose.popMatrix();
 	}
 
 	/** A straight line of any width between two points. */

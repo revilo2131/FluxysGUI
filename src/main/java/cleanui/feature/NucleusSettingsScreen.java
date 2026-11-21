@@ -51,14 +51,9 @@ public final class NucleusSettingsScreen extends Window {
 					c -> c.nucleusTimer, c -> c.nucleusTimer = !c.nucleusTimer),
 			Row.toggle("Crystal animations", "Fly-in when you find a crystal; each one you place drops into the finale's piece, and the fifth sets it off.",
 					c -> c.nucleusAnimations, c -> c.nucleusAnimations = !c.nucleusAnimations),
-			Row.choice("Finale", "What the crystals go into. Gauntlet: knuckle stones, then the snap. Altar: a ritual circle and a pillar of light. "
-							+ "Reactor: fuel rods, then meltdown. Constellation: stars that form a pickaxe. Crown: KING OF THE NUCLEUS. "
-							+ "Golem: it wakes up and slams the ground. Random: a different one each run. Click to change.",
-					c -> c.nucleusFinale.equals("RANDOM") ? "Random" : NucleusFinale.pick(c.nucleusFinale).label,
-					c -> c.nucleusFinale = FINALES[(indexOf(FINALES, c.nucleusFinale) + 1) % FINALES.length]),
 			Row.toggle("Best drop popup", "At the climax your most valuable drop (worth ~750k or more: Jaderald, Divan fragments, Alloy, Quick Claw, dyes...) pops up with its value. Only the best one.",
 					c -> c.nucleusLoot, c -> c.nucleusLoot = !c.nucleusLoot),
-			Row.toggle("Blur finale", "During the beams, loot and stats: blur the world and hide the rest of the HUD. You can still walk.",
+			Row.toggle("Blur finale", "During the finale: blur the world and hide the rest of the HUD. You can still walk.",
 					c -> c.nucleusFocus, c -> c.nucleusFocus = !c.nucleusFocus),
 			Row.toggle("PB walk-in", "The buff Scatha walks in when you set a new personal best.",
 					c -> c.nucleusPbWalkIn, c -> c.nucleusPbWalkIn = !c.nucleusPbWalkIn));
@@ -101,7 +96,7 @@ public final class NucleusSettingsScreen extends Window {
 
 	@Override
 	protected String hint() {
-		return "Saved right away. Test run closes the menu and plays a whole run.";
+		return "Saved right away. The tests close the menu and play.";
 	}
 
 	@Override
@@ -118,20 +113,55 @@ public final class NucleusSettingsScreen extends Window {
 
 	@Override
 	protected void initBody() {
-		int x = bx() + RIGHT_X, w = BW - RIGHT_X, y = by() + 14;
-		addRenderableWidget(new Button(x, y, w, 18, Component.literal("Test nucleus run"), () -> {
+		int x = bx() + RIGHT_X, w = BW - RIGHT_X, y = by() + 14, half = (w - 4) / 2;
+		addRenderableWidget(new Button(x, y, half, 18, Component.literal("Test run"), () -> {
 			onClose();
 			NucleusRun.test(0);
 		}).item(crystalIcon()).color(0xFF55FF)
-				.tooltip(Component.literal("A whole run from fake chat: five crystals found, placed, the finale, loot and stats.")).body());
-		addRenderableWidget(new Button(x, y + 20, w, 18, Component.literal("Test finale"), () -> {
+				.tooltip(Component.literal("A whole run from fake chat: five crystals found, placed, then the finale.")).body());
+		addRenderableWidget(new Button(x + w - half, y, half, 18, Component.literal("Test finale"), () -> {
 			onClose();
 			NucleusRun.test(NucleusRun.FINALE_AT - 1800);
 		}).item(new ItemStack(Items.NETHER_STAR)).color(0xFFC83D)
-				.tooltip(Component.literal("Skip to the last crystals: the fifth goes in and the finale plays.")).body());
-		reset = addRenderableWidget(new Button(x, y + 114, w, 18, Component.literal("Reset PB"), this::resetPb)
+				.tooltip(Component.literal("Skip to the last crystals: the fifth goes in and the finale you picked plays.")).body());
+		// the finale picker: click one to use it (Random = a different one each run)
+		for (int i = 0; i < FINALES.length; i++) {
+			String id = FINALES[i];
+			int[] at = finaleAt(i);
+			addRenderableWidget(new Button(at[0], at[1], half, 18, Component.literal(finaleName(id)), () -> {
+				Config.get().nucleusFinale = id;
+				Config.get().save();
+			}).item(new ItemStack(FINALE_ICONS[i])).color(finaleColor(id))
+					.tooltip(Component.literal(FINALE_TIPS[i])).body());
+		}
+		reset = addRenderableWidget(new Button(x, by() + 176, w, 18, Component.literal("Reset PB"), this::resetPb)
 				.item(new ItemStack(Items.CLOCK)).color(0xFF5555)
 				.tooltip(Component.literal("Forget your fastest run. Click twice.")).body());
+	}
+
+	private static final net.minecraft.world.item.Item[] FINALE_ICONS = {Items.ENDER_EYE, Items.GOLD_INGOT, Items.ENCHANTING_TABLE,
+			Items.BEACON, Items.NETHER_STAR, Items.GOLDEN_HELMET, Items.MOSSY_COBBLESTONE};
+	private static final String[] FINALE_TIPS = {
+			"A different finale every run.",
+			"Each crystal sets into a gold gauntlet's knuckle; the fifth: lightning, a fist, then SNAP!",
+			"Crystals float over pillars of a ritual circle; the fifth: runes, a pentagram, a pillar of light.",
+			"Crystals fill a reactor's fuel rods; the fifth: CORE CRITICAL, 999% power, meltdown.",
+			"Crystals are falling stars forming a pickaxe; the fifth: it lights up and swings, stars rain down.",
+			"Crystals set into a gold crown; the fifth: it spins up in golden rays: KING OF THE NUCLEUS.",
+			"Crystals crack a sleeping stone golem with light; the fifth: it wakes, roars and slams the ground."};
+
+	/** Top-left of finale button i: two columns under the FINALE heading. */
+	private int[] finaleAt(int i) {
+		int x = bx() + RIGHT_X, w = BW - RIGHT_X, half = (w - 4) / 2;
+		return new int[]{i % 2 == 0 ? x : x + w - half, by() + 52 + (i / 2) * 20, half};
+	}
+
+	private static String finaleName(String id) {
+		return id.equals("RANDOM") ? "Random" : NucleusFinale.pick(id).label;
+	}
+
+	private static int finaleColor(String id) {
+		return id.equals("RANDOM") ? 0xFFFFFF : NucleusFinale.pick(id).rgb;
 	}
 
 	private void resetPb() {
@@ -168,10 +198,13 @@ public final class NucleusSettingsScreen extends Window {
 		// right: test run, then your best
 		int rx = x + RIGHT_X, rw = BW - RIGHT_X;
 		Theme.divider(g, font, "TRY IT", rx, y, rw, a);
-		Theme.divider(g, font, "PERSONAL BEST", rx, y + 66, rw, a);
+		Theme.divider(g, font, "FINALE", rx, y + 38, rw, a);
+		int[] sel = finaleAt(indexOf(FINALES, c.nucleusFinale)); // the chosen one gets a frame in its colour
+		Theme.box(g, sel[0] - 2, sel[1] - 2, sel[2] + 4, 22, 0, 0f, finaleColor(c.nucleusFinale), a);
+		Theme.divider(g, font, "PERSONAL BEST", rx, y + 136, rw, a);
 		long best = c.nucleusBestMs;
-		Theme.textLeader(g, font, "Fastest run", Theme.TEXT_MUTED, best > 0 ? NucleusRun.time(best) : "--", 0xFFAA00, rx, y + 82, rw, a);
-		Theme.textLeader(g, font, "Runs this session", Theme.TEXT_MUTED, String.valueOf(NucleusRun.sessionRuns()), Theme.TEXT, rx, y + 96, rw, a);
+		Theme.textLeader(g, font, "Fastest run", Theme.TEXT_MUTED, best > 0 ? NucleusRun.time(best) : "--", 0xFFAA00, rx, y + 150, rw, a);
+		Theme.textLeader(g, font, "Runs this session", Theme.TEXT_MUTED, String.valueOf(NucleusRun.sessionRuns()), Theme.TEXT, rx, y + 162, rw, a);
 		boolean armed = System.currentTimeMillis() - resetArmed <= 3000;
 		reset.setMessage(Component.literal(armed ? "Click again to reset" : "Reset PB"));
 		if (tip != null) g.setTooltipForNextFrame(font, Component.literal(tip), mouseX, mouseY, Theme.tooltipStyle());
