@@ -8,6 +8,11 @@ import cleanui.feature.LevelingScreen;
 import cleanui.feature.ListPage;
 import cleanui.feature.LoadoutsScreen;
 import cleanui.feature.RngMeterScreen;
+import cleanui.feature.ScathaSlots;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import cleanui.feature.SlayerScreen;
 import cleanui.feature.StatsScreen;
 import cleanui.feature.TrackScreen;
@@ -94,7 +99,44 @@ public final class CleanUi implements ClientModInitializer {
 		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
 			String loadout = cleanui.skyblock.LoadoutParser.equipped(message.getString());
 			if (!overlay && loadout != null) LoadoutsScreen.equipped(loadout);
+			if (!overlay) ScathaSlots.onChat(message);
+			if (!overlay) cleanui.feature.NucleusRun.onChat(message);
+			if (!overlay) cleanui.feature.VanguardSnake.onChat(message);
 		});
+		// Scatha slots: drawn over the HUD; chat hidden while a Scatha is low or the reels spin
+		HudElementRegistry.attachElementAfter(VanillaHudElements.CHAT, Identifier.fromNamespaceAndPath(ID, "scatha_slots"),
+				(g, delta) -> { cleanui.feature.NucleusRun.render(g); cleanui.feature.VanguardSnake.render(g); ScathaSlots.renderHud(g); });
+		HudElementRegistry.replaceElement(VanillaHudElements.CHAT, chat -> (g, delta) -> {
+			if (!ScathaSlots.hideChat()) chat.extractRenderState(g, delta);
+		});
+		ClientTickEvents.END_CLIENT_TICK.register(ScathaSlots::tick);
+		ClientTickEvents.END_CLIENT_TICK.register(cleanui.feature.NucleusRun::tick);
+		ClientTickEvents.END_CLIENT_TICK.register(cleanui.feature.VanguardSnake::tick);
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, ctx) -> dispatcher.register(
+				// /testvanguard = no drop; dye / locket / wisp / key = that drop (indexes into VanguardSnake's drop list)
+				ClientCommands.literal("testvanguard")
+						.executes(c -> { cleanui.feature.VanguardSnake.test(-1); return 1; })
+						.then(ClientCommands.literal("dye").executes(c -> { cleanui.feature.VanguardSnake.test(0); return 1; }))
+						.then(ClientCommands.literal("locket").executes(c -> { cleanui.feature.VanguardSnake.test(1); return 1; }))
+						.then(ClientCommands.literal("wisp").executes(c -> { cleanui.feature.VanguardSnake.test(2); return 1; }))
+						.then(ClientCommands.literal("key").executes(c -> { cleanui.feature.VanguardSnake.test(3); return 1; }))));
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, ctx) -> dispatcher.register(
+				// /testlock = no drop; dye / locket / wisp / key = that drop, as the lockpick whatever the setting
+				ClientCommands.literal("testlock")
+						.executes(c -> { cleanui.feature.VanguardSnake.testLock(-1); return 1; })
+						.then(ClientCommands.literal("dye").executes(c -> { cleanui.feature.VanguardSnake.testLock(0); return 1; }))
+						.then(ClientCommands.literal("locket").executes(c -> { cleanui.feature.VanguardSnake.testLock(1); return 1; }))
+						.then(ClientCommands.literal("wisp").executes(c -> { cleanui.feature.VanguardSnake.testLock(2); return 1; }))
+						.then(ClientCommands.literal("key").executes(c -> { cleanui.feature.VanguardSnake.testLock(3); return 1; }))));
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, ctx) -> dispatcher.register(
+				ClientCommands.literal("nucleustest").executes(c -> { cleanui.feature.NucleusRun.test(0); return 1; })));
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, ctx) -> dispatcher.register(
+				ClientCommands.literal("scathaslots")
+						.executes(c -> { ScathaSlots.spin(false); return 1; })
+						.then(ClientCommands.literal("win").executes(c -> { ScathaSlots.spin(true); return 1; }))
+						.then(ClientCommands.literal("rare").executes(c -> { ScathaSlots.spinWin(0); return 1; }))
+						.then(ClientCommands.literal("epic").executes(c -> { ScathaSlots.spinWin(1); return 1; }))
+						.then(ClientCommands.literal("legendary").executes(c -> { ScathaSlots.spinWin(2); return 1; }))));
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			while (open.consumeClick()) {

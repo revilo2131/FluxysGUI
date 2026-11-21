@@ -3,6 +3,9 @@ package cleanui.dev;
 import cleanui.data.StorageCache;
 import cleanui.CleanUi;
 import cleanui.feature.CalendarScreen;
+import cleanui.data.Config;
+import cleanui.feature.ScathaSettingsScreen;
+import cleanui.feature.ScathaSlots;
 import cleanui.feature.SettingsScreen;
 import cleanui.feature.SubMenuScreen;
 import cleanui.skyblock.CollectionParser;
@@ -69,6 +72,36 @@ public final class Preview {
 			new Shot("bestiary-hub", Preview::fakeBestiaryHub, -1, -1),
 			new Shot("pets", Preview::fakePets, -1, -1),
 			new Shot("settings", mc -> themed("cyan", m -> new SettingsScreen(fakeSkyBlockMenu(m)), mc), -1, -1),
+			new Shot("scatha", mc -> themed("cyan", m -> new ScathaSettingsScreen(fakeSkyBlockMenu(m)), mc), -1, -1),
+			new Shot("nucleus-settings", mc -> themed("cyan", m -> new cleanui.feature.NucleusSettingsScreen(fakeSkyBlockMenu(m)), mc), -1, -1),
+			// screenshots land 1.75s after the shot starts: mid-roll, and just after a legendary landing
+			new Shot("roulette-roll", mc -> roulette(-2, 1500), -1, -1),
+			new Shot("roulette-portal", mc -> roulette(1, 4650), -1, -1),
+			new Shot("roulette-win", mc -> roulette(2, 5900), -1, -1),
+			new Shot("roulette-lose", mc -> roulette(-2, 4400), -1, -1),
+			new Shot("walkin-mid", mc -> game("ROULETTE", true, 1, 4400), -1, -1),
+			new Shot("walkin-done", mc -> game("NONE", true, 2, -1750 + 500 + 1500 + 1200), -1, -1),
+			new Shot("pose-abs", mc -> game("NONE", true, 2, -1750 + 2300 + 1800 + 900), -1, -1),
+			new Shot("pose-lats", mc -> game("NONE", true, 2, -1750 + 2300 + 3600 + 900), -1, -1),
+			new Shot("nucleus-found", mc -> nucleus(-1300), -1, -1),
+			new Shot("nucleus-tracker", mc -> nucleus(7550), -1, -1),
+			new Shot("nucleus-beams", mc -> nucleus(11050), -1, -1),
+			new Shot("nucleus-loot", mc -> nucleus(17600), -1, -1),
+			new Shot("nucleus-stats", mc -> nucleus(20750), -1, -1),
+			new Shot("lock-picking", mc -> lock(650, 0, 0), -1, -1),
+			new Shot("lock-fail", mc -> lock(1350, 2), -1, -1),
+			new Shot("lock-wisp-open", mc -> lock(3050, 0, 2), -1, -1),
+			new Shot("lock-dye", mc -> lock(4650, 0, 0), -1, -1),
+			new Shot("lock-locket", mc -> lock(4550, 0, 1), -1, -1),
+			new Shot("lock-wisp", mc -> lock(3950, 0, 2), -1, -1),
+			new Shot("lock-key", mc -> lock(3950, 0, 3), -1, -1),
+			new Shot("snake-build", mc -> snake(-1480), -1, -1),
+			new Shot("snake-spin", mc -> snake(-250), -1, -1),
+			new Shot("snake-swing", mc -> snake(1440, 1), -1, -1),
+			new Shot("snake-cut", mc -> snake(1640, 1), -1, -1),
+			new Shot("snake-drops", mc -> snake(3450, 0, 2), -1, -1),
+			new Shot("snake-glow", mc -> snake(3050), -1, -1),
+			new Shot("snake-crumble", mc -> snake(3800), -1, -1),
 			new Shot("theme-midnight", mc -> themed("midnight", Preview::fakeSlayer, mc), -1, -1),
 			new Shot("theme-neon", mc -> themed("neon", Preview::fakeLoadouts, mc), -1, -1),
 			new Shot("theme-glass", mc -> themed("glass", Preview::fakeSkyBlockMenu, mc), -1, -1),
@@ -134,6 +167,37 @@ public final class Preview {
 		}
 		if (phase == EACH - 5)
 			Screenshot.grab(mc.gameDirectory, "preview-" + s.name() + ".png", mc.gameRenderer.mainRenderTarget(), 1, msg -> {});
+	}
+
+	/** A roulette spin already {@code msAgo} in; no screen (the spin opens its own). */
+	private static Screen roulette(int rarity, long msAgo) {
+		return game("ROULETTE", false, rarity, msAgo);
+	}
+
+	/** The Vanguard lockpick {@code msAgo} in; {@code pins} = how far it gets with no drop. */
+	private static Screen lock(long msAgo, int pins, int... drops) {
+		cleanui.feature.VanguardSnake.previewLock(msAgo, pins, drops);
+		return null;
+	}
+
+	/** The Vanguard snake {@code msAgo} in, with these drops (none = no drop). */
+	private static Screen snake(long msAgo, int... drops) {
+		cleanui.feature.VanguardSnake.preview(msAgo, drops);
+		return null;
+	}
+
+	/** A test nucleus run already {@code msAgo} in; no screen. */
+	private static Screen nucleus(long msAgo) {
+		cleanui.feature.NucleusRun.test(msAgo);
+		return null;
+	}
+
+	/** A Scatha game spin already {@code msAgo} in, with the walk-in on or off. */
+	private static Screen game(String game, boolean walkIn, int rarity, long msAgo) {
+		Config.get().scathaGame = game;
+		Config.get().scathaWalkIn = walkIn;
+		ScathaSlots.previewSpin(rarity, msAgo);
+		return null;
 	}
 
 	/** Overview over a fake SkyBlock Menu: glass filler, the usual buttons, and Close. */

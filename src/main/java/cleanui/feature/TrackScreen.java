@@ -91,6 +91,16 @@ public final class TrackScreen extends MenuPage {
 				.tooltip(Component.literal("Next tiers")).body());
 		prev = addRenderableWidget(new Button(right - 86 - 6 - 22 - 4 - 22, by(), 22, 18, Component.literal("‹"), () -> click(prevSlot, 0))
 				.tooltip(Component.literal("Previous tiers")).body());
+		if (mining())
+			addRenderableWidget(new Button(extraX(-2), by(), EXTRA_W, 18, Component.literal("Scatha"),
+					() -> minecraft.setScreenAndShow(new ScathaSettingsScreen(this)))
+					.item(ScathaSlots.scathaHead()).color(0xFFAA00)
+					.tooltip(Component.literal("Scatha gambling settings.")).body());
+		if (mining())
+			addRenderableWidget(new Button(extraX(-1), by(), EXTRA_W, 18, Component.literal("Nucleus"),
+					() -> minecraft.setScreenAndShow(new NucleusSettingsScreen(this)))
+					.item(NucleusSettingsScreen.crystalIcon()).color(0xFF55FF)
+					.tooltip(Component.literal("Crystal Nucleus run settings.")).body());
 	}
 
 	/** Tier panes as nodes, in tier order, wrapped into rows; also finds the info item and paging. */
@@ -207,8 +217,13 @@ public final class TrackScreen extends MenuPage {
 
 	/** Shortcut buttons sit right to left, ending just before the paging arrows. */
 	private int extraX(int i) {
+		if (mining()) i += 2; // the Scatha and Nucleus settings buttons take the first two spots
 		int arrowsLeft = bx() + BW - 86 - 6 - 22 - 4 - 22;
 		return arrowsLeft - 6 - (i + 1) * EXTRA_W - i * 4;
+	}
+
+	private boolean mining() {
+		return !collection && title.getString().equals("Mining");
 	}
 
 	private int rows(List<Node> nodes) {

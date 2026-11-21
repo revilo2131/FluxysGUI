@@ -30,8 +30,8 @@ public final class Networth {
 	private static volatile String error;
 	private static volatile long fetchedAt;
 	private static volatile boolean loading;
-	private static Map<String, Double> prices;
-	private static long pricesAt;
+	private static volatile Map<String, Double> prices;
+	private static volatile long pricesAt;
 
 	private Networth() {}
 
@@ -118,6 +118,30 @@ public final class Networth {
 		} catch (Exception e) {
 			return fallback;
 		}
+	}
+
+	private static volatile boolean pricesLoading;
+
+	/**
+	 * An item's price (coins) by its Hypixel id from the same price file, or null while it loads
+	 * (in the background; safe to call every frame) or if it isn't listed.
+	 */
+	public static Double price(String id) {
+		Map<String, Double> p = prices;
+		if (p != null && System.currentTimeMillis() - pricesAt < PRICE_REFRESH.toMillis()) return p.get(id);
+		if (!pricesLoading) {
+			pricesLoading = true;
+			java.util.concurrent.CompletableFuture.runAsync(() -> {
+				try {
+					prices();
+				} catch (Exception ignored) {
+					// offline: no values shown
+				} finally {
+					pricesLoading = false;
+				}
+			});
+		}
+		return p != null ? p.get(id) : null; // an old list beats nothing while the new one loads
 	}
 
 	private static synchronized Map<String, Double> prices() throws Exception {

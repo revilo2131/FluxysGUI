@@ -37,8 +37,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class SkyblockItems {
 	private static final String ITEMS = "https://api.hypixel.net/v2/resources/skyblock/items";
 
-	/** Just what's needed to build the item: 1.8 material name, leather "r,g,b", head texture value. */
-	private record Spec(String material, String color, String skin) {}
+	/** Just what's needed to build the item: 1.8 material name, leather "r,g,b", head texture value, Hypixel resource-pack model. */
+	private record Spec(String material, String color, String skin, String model) {}
 
 	private static volatile Map<String, Spec> specs;
 	private static volatile boolean loading;
@@ -92,7 +92,8 @@ public final class SkyblockItems {
 						} catch (Exception ignored) {}
 					}
 					map.putIfAbsent(o.get("name").getAsString().toLowerCase(Locale.ROOT),
-							new Spec(o.get("material").getAsString(), o.has("color") ? o.get("color").getAsString() : null, skin));
+							new Spec(o.get("material").getAsString(), o.has("color") ? o.get("color").getAsString() : null, skin,
+									o.has("item_model") ? o.get("item_model").getAsString() : null));
 				}
 				specs = map;
 			} catch (Exception ignored) {
@@ -103,17 +104,18 @@ public final class SkyblockItems {
 		});
 	}
 
+	/** A player head wearing a texture (the base64 "textures" value Hypixel items carry). */
+	public static ItemStack head(String skin) {
+		ItemStack head = new ItemStack(Items.PLAYER_HEAD);
+		PropertyMap props = new PropertyMap(ImmutableMultimap.of("textures", new Property("textures", skin)));
+		GameProfile profile = new GameProfile(UUID.nameUUIDFromBytes(skin.getBytes(StandardCharsets.UTF_8)), "Item", props);
+		head.set(DataComponents.PROFILE, ResolvableProfile.createResolved(profile));
+		return head;
+	}
+
 	private static ItemStack build(Spec spec) {
 		String m = spec.material().toLowerCase(Locale.ROOT);
-		if (m.equals("skull_item")) {
-			ItemStack head = new ItemStack(Items.PLAYER_HEAD);
-			if (spec.skin() != null) {
-				PropertyMap props = new PropertyMap(ImmutableMultimap.of("textures", new Property("textures", spec.skin())));
-				GameProfile profile = new GameProfile(UUID.nameUUIDFromBytes(spec.skin().getBytes(StandardCharsets.UTF_8)), "Item", props);
-				head.set(DataComponents.PROFILE, ResolvableProfile.createResolved(profile));
-			}
-			return head;
-		}
+		if (m.equals("skull_item")) return spec.skin() != null ? head(spec.skin()) : new ItemStack(Items.PLAYER_HEAD);
 		if (m.startsWith("gold_")) m = "golden_" + m.substring(5); // 1.8 names
 		ItemStack stack = BuiltInRegistries.ITEM.getOptional(Identifier.withDefaultNamespace(m)).map(ItemStack::new).orElse(ItemStack.EMPTY);
 		if (!stack.isEmpty() && spec.color() != null && m.startsWith("leather_")) {
@@ -122,6 +124,9 @@ public final class SkyblockItems {
 				stack.set(DataComponents.DYED_COLOR, new DyedItemColor(Integer.parseInt(c[0].strip()) << 16 | Integer.parseInt(c[1].strip()) << 8 | Integer.parseInt(c[2].strip())));
 			} catch (Exception ignored) {}
 		}
+		// Hypixel's own resource pack draws many items (gemstones...) over a plain base like paper
+		Identifier model = spec.model() != null ? Identifier.tryParse(spec.model()) : null;
+		if (!stack.isEmpty() && model != null) stack.set(DataComponents.ITEM_MODEL, model);
 		return stack;
 	}
 }

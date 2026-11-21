@@ -27,7 +27,7 @@ import java.util.function.Predicate;
  */
 public final class SettingsScreen extends Window {
 	private static final int SWATCH_W = 36, SWATCH_H = 22, SWATCH_STEP = 40, SWATCH_ROW = 26, PER_ROW = 5, COL_W = 200, RIGHT_X = 214;
-	private static final int ROW_H = 16, ROW_STEP = 18;
+	static final int ROW_H = 16, ROW_STEP = 18;
 	private static final int STYLE_Y = 80, CELL_W = (COL_W - 4) / 2, NET_Y = 152;
 	private static final int[] SCALES = {80, 90, 100, 110, 120};
 
@@ -52,7 +52,7 @@ public final class SettingsScreen extends Window {
 		return s.isEmpty() ? s : s.charAt(0) + s.substring(1).toLowerCase(java.util.Locale.ROOT);
 	}
 
-	private record Toggle(String label, String tip, Predicate<Config> get, Consumer<Config> flip) {}
+	record Toggle(String label, String tip, Predicate<Config> get, Consumer<Config> flip) {}
 
 	private static final List<Toggle> TOGGLES = List.of(
 			new Toggle("SkyBlock Menu", "The Nether Star menu.", c -> c.skyblockMenu, c -> c.skyblockMenu = !c.skyblockMenu),
@@ -197,17 +197,21 @@ public final class SettingsScreen extends Window {
 			boolean on = t.get().test(c);
 			Anim knob = knobs.get(i);
 			knob.target(on ? 1f : 0f);
-			float k = knob.get();
-			Theme.box(g, rx, ry, rw, ROW_H, over ? Theme.ROW_HOVER : Theme.ROW, a);
-			g.text(font, t.label(), rx + 6, ry + 4, Theme.argb(on ? Theme.TEXT : Theme.TEXT_MUTED, a), true);
-			// switch: track fills with the frame color, knob slides across
-			int sw = 20, sx = rx + rw - sw - 6, sy = ry + 3;
-			Theme.box(g, sx, sy, sw, 10, Theme.mix(Theme.SLOT, Theme.FRAME_DIM, k), a, Theme.mix(Theme.LINE, Theme.FRAME, k), a);
-			int kx = sx + 1 + Math.round(k * (sw - 10));
-			g.fill(kx, sy + 1, kx + 8, sy + 9, Theme.argb(Theme.mix(Theme.TEXT_MUTED, Theme.TEXT, k), a));
+			toggleRow(g, font, t.label(), on, knob.get(), rx, ry, rw, over, a);
 		}
 		if (hovered != null)
 			g.setTooltipForNextFrame(font, Component.literal(hovered.tip()), mouseX, mouseY, Theme.tooltipStyle());
+	}
+
+	/** A settings row: label left, on/off switch right ({@code k} = knob position 0..1, animated). */
+	static void toggleRow(GuiGraphicsExtractor g, net.minecraft.client.gui.Font font, String label, boolean on, float k, int rx, int ry, int rw, boolean over, float a) {
+		Theme.box(g, rx, ry, rw, ROW_H, over ? Theme.ROW_HOVER : Theme.ROW, a);
+		g.text(font, label, rx + 6, ry + 4, Theme.argb(on ? Theme.TEXT : Theme.TEXT_MUTED, a), true);
+		// switch: track fills with the frame color, knob slides across
+		int sw = 20, sx = rx + rw - sw - 6, sy = ry + 3;
+		Theme.box(g, sx, sy, sw, 10, Theme.mix(Theme.SLOT, Theme.FRAME_DIM, k), a, Theme.mix(Theme.LINE, Theme.FRAME, k), a);
+		int kx = sx + 1 + Math.round(k * (sw - 10));
+		g.fill(kx, sy + 1, kx + 8, sy + 9, Theme.argb(Theme.mix(Theme.TEXT_MUTED, Theme.TEXT, k), a));
 	}
 
 	private void applyAndSave(Config c) {
