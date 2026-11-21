@@ -34,6 +34,9 @@ public final class LoadoutsScreen extends MenuPage {
 	private static final int LEFT_W = 150, GRID_X = LEFT_W + 10, GRID_W = BW - GRID_X, GRID_COLS = 6, GAP = 4, BUTTON_H = 18;
 	private static final int ACTIVE = 0x4CC36A, READY = 0x4F7BD9, EMPTY = 0x3A4150;
 
+	private static final long BRIDGE_MS = 1500, PRESS_MS = 220;
+	private final Map<Integer, MenuItem> lastLoadouts = new HashMap<>();
+	private final Map<Integer, Long> lastSeen = new HashMap<>(), pressedAt = new HashMap<>();
 	private final Map<Integer, SkinModel> models = new HashMap<>();
 	private final Map<Integer, Anim> hover = new HashMap<>();
 
@@ -85,7 +88,22 @@ public final class LoadoutsScreen extends MenuPage {
 				armor[row - 1] = i.stack();
 			} else if (col == 3 && pet == null) pet = i;
 		}
+		// Hypixel empties a loadout's slot for a moment while it handles a click: keep showing what
+		// was there (briefly), so the card doesn't blink out
+		long now = System.currentTimeMillis();
+		for (MenuItem lo : loadouts) {
+			lastLoadouts.put(lo.slot(), lo);
+			lastSeen.put(lo.slot(), now);
+		}
+		for (Map.Entry<Integer, MenuItem> e : lastLoadouts.entrySet())
+			if (loadouts.stream().noneMatch(lo -> lo.slot() == e.getKey()) && now - lastSeen.get(e.getKey()) < BRIDGE_MS) loadouts.add(e.getValue());
+		loadouts.sort((p, q) -> Integer.compare(index(p.slot()), index(q.slot())));
 		return new Layout(actions, equipment, armor, armorItems, pet, loadouts, prev, next);
+	}
+
+	/** A loadout's fixed place in the grid, from its menu slot: Loadout 1 is always first, and so on. */
+	private static int index(int slot) {
+		return (slot / 9 - 1) * 3 + (slot % 9 - 5);
 	}
 
 	private static LoadoutParser.Loadout parsed(MenuItem i) {
@@ -208,32 +226,49 @@ public final class LoadoutsScreen extends MenuPage {
 
 	/** Right: a card per loadout with you wearing it; green = active, blue = ready, grey = empty/locked. */
 	private ItemStack extractGrid(GuiGraphicsExtractor g, Layout l, int mouseX, int mouseY, float a) {
-		int n = l.loadouts().size(), rows = Math.max(1, (n + GRID_COLS - 1) / GRID_COLS), w = cardW(), h = cardH(rows);
+		int rows = rows(l), cw = cardW(), ch = cardH(rows);
 		ItemStack tooltip = null;
-		for (int i = 0; i < n; i++) {
-			MenuItem lo = l.loadouts().get(i);
-			int[] p = cardPos(i, rows);
+		for (MenuItem lo : l.loadouts()) {
+			int idx = index(lo.slot());
+			int[] p = cardPos(idx, rows);
 			boolean active = isActive(lo), usable = usable(lo);
 			int color = active ? ACTIVE : usable ? READY : EMPTY;
-			boolean over = mouseX >= p[0] && mouseX < p[0] + w && mouseY >= p[1] && mouseY < p[1] + h;
+			boolean over = mouseX >= p[0] && mouseX < p[0] + cw && mouseY >= p[1] && mouseY < p[1] + ch;
 			if (over) tooltip = lo.stack();
-			float hf = hoverOf(lo.slot(), over);
-			int y = p[1] - Math.round(2 * hf);
-			Theme.box(g, p[0], y, w, h, Theme.mix(Theme.mix(Theme.ROW, color, usable ? 0.38f : 0.15f), 0xFFFFFF, 0.06f * hf), a,
-					Theme.mix(Theme.mix(color, Theme.LINE, 0.3f), 0xFFFFFF, 0.35f * hf), a);
-			if (active) g.fill(p[0] + 1, y + 1, p[0] + w - 1, y + 3, Theme.argb(ACTIVE, a));
+			float hf = hoverOf(lo.slot(), over), press = press(lo.slot());
+			// click: the card swells a few pixels and settles back
+			int grow = Math.round(3 * press), x = p[0] - grow, w = cw + 2 * grow, h = ch + 2 * grow;
+			int y = p[1] - grow - Math.round(2 * hf);
+			Theme.box(g, x, y, w, h, Theme.mix(Theme.mix(Theme.ROW, color, usable ? 0.38f : 0.15f), 0xFFFFFF, 0.06f * hf + 0.12f * press), a,
+					Theme.mix(Theme.mix(color, Theme.LINE, 0.3f), 0xFFFFFF, 0.35f * hf + 0.5f * press), a);
+			if (active) g.fill(x + 1, y + 1, x + w - 1, y + 3, Theme.argb(ACTIVE, a));
 			if (usable) {
 				SkinModel m = model(lo.slot());
 				dress(m, armorOf(lo));
 				if (a > 0.5f)
-					InventoryScreen.extractEntityInInventoryFollowsMouse(g, p[0] + 2, y + 4, p[0] + w - 2, y + h - 14, Math.min(40, h / 3), 0.0625f, mouseX, mouseY, m);
-			} else Theme.item(g, lo.stack(), p[0] + (w - 16) / 2, y + (h - 16) / 2 - 6, 16, a);
+					InventoryScreen.extractEntityInInventoryFollowsMouse(g, x + 2, y + 4, x + w - 2, y + h - 14,
+							Math.round(Math.min(40, ch / 3) * (1 + 0.08f * press)), 0.0625f, mouseX, mouseY, m);
+			} else Theme.item(g, lo.stack(), x + (w - 16) / 2, y + (h - 16) / 2 - 6, 16, a);
 			// "Loadout 3" → "3": the cards are narrow, the full name is in the tooltip
 			String name = Theme.fit(font, lo.name().replaceFirst("(?i)^(Locked )?Loadout\\s*", ""), w - 4);
-			if (name.isEmpty()) name = usable ? String.valueOf(i + 1) : "Locked";
-			g.text(font, name, p[0] + (w - font.width(name)) / 2, y + h - 11, Theme.argb(active ? Theme.TITLE : usable ? Theme.TEXT : Theme.TEXT_MUTED, a), true);
+			if (name.isEmpty()) name = usable ? String.valueOf(idx + 1) : "Locked";
+			g.text(font, name, x + (w - font.width(name)) / 2, y + h - 11, Theme.argb(active ? Theme.TITLE : usable ? Theme.TEXT : Theme.TEXT_MUTED, a), true);
 		}
 		return tooltip;
+	}
+
+	/** 0 → 1 → 0 over {@link #PRESS_MS} after a card is clicked. */
+	private float press(int slot) {
+		Long at = pressedAt.get(slot);
+		if (at == null) return 0f;
+		float t = (System.currentTimeMillis() - at) / (float) PRESS_MS;
+		return t >= 1f ? 0f : (float) Math.sin(Math.PI * t);
+	}
+
+	/** Grid rows from the highest loadout position (12 loadouts → 2 rows of 6), not from how many are visible. */
+	private static int rows(Layout l) {
+		int max = l.loadouts().stream().mapToInt(lo -> index(lo.slot())).max().orElse(0);
+		return Math.max(1, max / GRID_COLS + 1);
 	}
 
 	private void pageButton(GuiGraphicsExtractor g, int x, int y, String arrow, boolean on, int mouseX, int mouseY, float a) {
@@ -254,11 +289,12 @@ public final class LoadoutsScreen extends MenuPage {
 			if (l.prevSlot() >= 0 && mx >= bx() + GRID_X && mx < bx() + GRID_X + 22) { click(l.prevSlot(), 0); return true; }
 			if (l.nextSlot() >= 0 && mx >= nextX(label) && mx < nextX(label) + 22) { click(l.nextSlot(), 0); return true; }
 		}
-		int n = l.loadouts().size(), rows = Math.max(1, (n + GRID_COLS - 1) / GRID_COLS);
-		for (int i = 0; i < n; i++) {
-			int[] p = cardPos(i, rows);
+		int rows = rows(l);
+		for (MenuItem lo : l.loadouts()) {
+			int[] p = cardPos(index(lo.slot()), rows);
 			if (mx >= p[0] && mx < p[0] + cardW() && my >= p[1] && my < p[1] + cardH(rows)) {
-				clickAs(l.loadouts().get(i).slot(), event);
+				pressedAt.put(lo.slot(), System.currentTimeMillis());
+				clickAs(lo.slot(), event);
 				return true;
 			}
 		}
