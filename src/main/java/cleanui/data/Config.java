@@ -57,6 +57,12 @@ public final class Config {
 	public boolean scathaAutoCoords = false;
 	/** Note block build-up and drop on a pet win. */
 	public boolean scathaMusic = true;
+	/** The Scatha Stats panel while farming: pets, worm/Scatha kills (all time and this session), streaks. */
+	public boolean scathaStats = true;
+	/** Scatha Stats, all time: worms and Scathas killed, Scatha pets by rarity (rare, epic, legendary), Scathas since the last pet. */
+	public long statWorms = 0, statScathas = 0;
+	public int[] statPets = new int[3];
+	public int statSincePet = 0;
 	// Crystal Nucleus runs (also on the Scatha page)
 	/** Five crystal slots and a run timer on the HUD during a run. */
 	public boolean nucleusTracker = true;

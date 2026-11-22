@@ -138,13 +138,19 @@ public final class ScathaSlots {
 	public static void onChat(Component message) {
 		String s = ChatFormatting.stripFormatting(message.getString());
 		if (!Config.get().scathaSlots || !s.contains("PET DROP!") || !s.contains("Scatha")) return;
+		int r = dropRarity(message);
+		if (start >= 0 && !decided) jackpot = true;
+		else spin(true);
+		rarity = r;
+	}
+
+	/** A "PET DROP! Scatha" line's rarity: 0 rare, 1 epic, 2 legendary, -1 unknown. */
+	static int dropRarity(Component message) {
 		int r = Tag.rarity(message.getString());
 		if (r < 0) // colour carried as a style, not § codes: the colour of the "Scatha" part
 			r = message.visit((style, text) -> text.contains("Scatha") && style.getColor() != null
 					? java.util.Optional.of(Tag.rarityOf(style.getColor().getValue())) : java.util.Optional.<Integer>empty(), Style.EMPTY).orElse(-1);
-		if (start >= 0 && !decided) jackpot = true;
-		else spin(true);
-		rarity = r;
+		return r;
 	}
 
 	/** Every tick: read Scatha nametags for health and kills. */
@@ -266,7 +272,7 @@ public final class ScathaSlots {
 	}
 
 	/** The mob a nametag belongs to: itself, or the closest non-armor-stand under the floating stand. */
-	private static LivingEntity mobOf(Minecraft mc, Entity tag) {
+	static LivingEntity mobOf(Minecraft mc, Entity tag) {
 		if (tag instanceof LivingEntity l && !(tag instanceof ArmorStand)) return l;
 		LivingEntity best = null;
 		double bestD = 9;

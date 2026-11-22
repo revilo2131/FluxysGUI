@@ -102,14 +102,16 @@ public final class CleanUi implements ClientModInitializer {
 			if (!overlay) ScathaSlots.onChat(message);
 			if (!overlay) cleanui.feature.NucleusRun.onChat(message);
 			if (!overlay) cleanui.feature.VanguardSnake.onChat(message);
+			if (!overlay) cleanui.feature.ScathaStats.onChat(message);
 		});
 		// Scatha slots: drawn over the HUD; chat hidden while a Scatha is low or the reels spin
 		HudElementRegistry.attachElementAfter(VanillaHudElements.CHAT, Identifier.fromNamespaceAndPath(ID, "scatha_slots"),
-				(g, delta) -> { cleanui.feature.NucleusRun.render(g); cleanui.feature.VanguardSnake.render(g); ScathaSlots.renderHud(g); });
+				(g, delta) -> { cleanui.feature.ScathaStats.render(g); cleanui.feature.NucleusRun.render(g); cleanui.feature.VanguardSnake.render(g); ScathaSlots.renderHud(g); });
 		HudElementRegistry.replaceElement(VanillaHudElements.CHAT, chat -> (g, delta) -> {
 			if (!ScathaSlots.hideChat()) chat.extractRenderState(g, delta);
 		});
 		ClientTickEvents.END_CLIENT_TICK.register(ScathaSlots::tick);
+		ClientTickEvents.END_CLIENT_TICK.register(cleanui.feature.ScathaStats::tick);
 		ClientTickEvents.END_CLIENT_TICK.register(cleanui.feature.NucleusRun::tick);
 		ClientTickEvents.END_CLIENT_TICK.register(cleanui.feature.VanguardSnake::tick);
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, ctx) -> dispatcher.register(

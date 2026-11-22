@@ -35,7 +35,9 @@ public final class ScathaSettingsScreen extends Window {
 			new SettingsScreen.Toggle("Auto coords", "When a Scatha spawns next to you, send your coordinates in party chat (/pc). At most once every 15 seconds.",
 					c -> c.scathaAutoCoords, c -> c.scathaAutoCoords = !c.scathaAutoCoords),
 			new SettingsScreen.Toggle("Music","Note block build-up when the pet is certain, and a drop as the rarity shows. Needs Sounds on.",
-					c -> c.scathaMusic, c -> c.scathaMusic = !c.scathaMusic));
+					c -> c.scathaMusic, c -> c.scathaMusic = !c.scathaMusic),
+			new SettingsScreen.Toggle("Scatha Stats", "A panel while you farm (it shows after a worm or Scatha near you, hides 10 min after the last): pets by rarity, Stoneworms and Scathas killed all time and this session (all-time numbers update from your bestiary), spawns since the last Scatha, Scathas since your last pet.",
+					c -> c.scathaStats, c -> c.scathaStats = !c.scathaStats));
 
 	private static final int TEST_STEP = 20;
 
@@ -83,6 +85,27 @@ public final class ScathaSettingsScreen extends Window {
 					.item(ScathaSlots.scathaHead()).outline(colors[i]).color(colors[i])
 					.tooltip(Component.literal("A jackpot roll with this rarity and its celebration.")).body());
 		}
+		// pets dropped, by rarity: set your real totals (from before the mod) with - and +
+		for (int i = 0; i < 3; i++) {
+			int r = i, ry = petRowY(i);
+			addRenderableWidget(new Button(x + w - 42, ry, 20, 18, Component.literal("-"), () -> addPet(r, -1))
+					.tooltip(Component.literal("One less " + names[i].toLowerCase())).body());
+			addRenderableWidget(new Button(x + w - 20, ry, 20, 18, Component.literal("+"), () -> addPet(r, 1))
+					.tooltip(Component.literal("One more " + names[i].toLowerCase())).body());
+		}
+	}
+
+	private static final int[] PET_COLORS = {0x5555FF, 0xAA00AA, 0xFFAA00};
+	private static final String[] PET_NAMES = {"Rare", "Epic", "Legendary"};
+
+	private int petRowY(int i) {
+		return by() + 114 + i * 20;
+	}
+
+	private static void addPet(int rarity, int by) {
+		Config c = Config.get();
+		c.statPets[rarity] = Math.max(0, c.statPets[rarity] + by);
+		c.save();
 	}
 
 	/** Close the menu, then spin: -2 = normal roll, 0..2 = a pet of that rarity. */
@@ -113,7 +136,19 @@ public final class ScathaSettingsScreen extends Window {
 			knobs.get(i).target(on ? 1f : 0f);
 			SettingsScreen.toggleRow(g, font, t.label(), on, knobs.get(i).get(), x, ry, COL_W, over, a);
 		}
-		Theme.divider(g, font, "TRY IT", x + RIGHT_X, y, BW - RIGHT_X, a);		if (hovered != null) tip = hovered.tip();
+		Theme.divider(g, font, "TRY IT", x + RIGHT_X, y, BW - RIGHT_X, a);
+		// pets dropped: the counts Scatha Stats shows, editable
+		int rx = x + RIGHT_X, rw = BW - RIGHT_X;
+		Theme.divider(g, font, "PETS DROPPED", rx, y + 100, rw, a);
+		for (int i = 0; i < 3; i++) {
+			int ry = petRowY(i);
+			Theme.box(g, rx, ry, rw - 46, 18, Theme.ROW, a, PET_COLORS[i], a);
+			ScathaSlots.item(g, ScathaSlots.scathaHead(), rx + 10, ry + 9, 0.7f, 0.7f);
+			Theme.textPair(g, font, PET_NAMES[i], PET_COLORS[i], String.valueOf(c.statPets[i]), Theme.TITLE, rx + 20, ry + 5, rw - 46 - 26, a);
+		}
+		if (mouseX >= rx && mouseX < rx + rw - 46 && mouseY >= petRowY(0) && mouseY < petRowY(2) + 18)
+			tip = "Scatha pets you've dropped, shown in Scatha Stats. New drops count themselves; set your earlier ones here.";
+		if (hovered != null) tip = hovered.tip();
 		if (tip != null) g.setTooltipForNextFrame(font, Component.literal(tip), mouseX, mouseY, Theme.tooltipStyle());
 	}
 
