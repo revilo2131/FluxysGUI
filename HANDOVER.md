@@ -28,7 +28,8 @@ clean menus for Hypixel's SkyBlock pages, plus mining "dopamine" animations.
 |---|---|---|
 | Scatha slots / roulette / "Then I walk in" (buff Scatha) | `ScathaSlots`, `ScathaRoulette`, `BuffScatha`, `ScathaMusic`, `BlockModel` | `/scathaslots [win\|rare\|epic\|legendary]` |
 | Scatha Stats panel (pets, Stoneworm/Scatha kills, bestiary sync, pet editor, Tunnel Vision + 30 s spawn cooldown bars) | `ScathaStats`, `ScathaSettingsScreen`, `skyblock/AbilityParser` | shows in the Crystal Hollows |
-| Scatha Stats move / resize editor (grid snap, corner drag, scroll, arrow nudge) | `ScathaStatsEditor` | Scatha settings → "Move / resize Scatha Stats" |
+| Fancy sidebar scoreboard (Scatha Stats frame; title, spacers, date line, footer options) | `ScoreboardHud` | any server with a sidebar |
+| Customize HUD: move / resize / options for every panel (grid snap, corner drag, scroll, arrow nudge) | `HudEditor` | Settings → "Customize HUD", or Scatha settings → "Move / resize Scatha Stats" |
 | Crystal Nucleus runs: tracker, 6 finales, best-drop popup | `NucleusRun`, `NucleusFinale`, `FinaleModels` (3D), `FinaleScenes` (2D), `NucleusSettingsScreen` | `/nucleustest [gauntlet\|altar\|reactor\|constellation\|crown\|golem]` |
 | Vanguard corpse: ouroboros snake or lockpick | `VanguardSnake`, `VanguardLock`, `VanguardSettingsScreen` | `/testvanguard`, `/testlock` `[dye\|locket\|wisp\|key]` |
 

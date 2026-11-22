@@ -84,8 +84,29 @@ public final class Preview {
 				c.scathaStatsY = 64;
 				c.scathaStatsScale = 80;
 				c.scathaStatsGrid = true;
-				return new cleanui.feature.ScathaStatsEditor(themed("cyan", m -> new ScathaSettingsScreen(fakeSkyBlockMenu(m)), mc));
+				return new cleanui.feature.HudEditor(themed("cyan", m -> new ScathaSettingsScreen(fakeSkyBlockMenu(m)), mc), true);
 			}, 120, 120),
+			// fancy scoreboard on the HUD (sample lines), next to Scatha Stats
+			new Shot("scoreboard", mc -> {
+				cleanui.feature.ScathaStats.preview();
+				cleanui.feature.ScoreboardHud.preview = true;
+				Config c = Config.get();
+				c.scathaStatsX = 6;
+				c.scathaStatsY = 5;
+				c.scathaStatsScale = 70;
+				c.scoreboardX = -1;
+				c.scoreboardY = -1;
+				c.scoreboardScale = 100;
+				return null;
+			}, -1, -1),
+			// Customize HUD from settings: the scoreboard picked, its options in the toolbar, hidden lines, shimmer
+			new Shot("hud-edit-scoreboard", mc -> {
+				cleanui.feature.ScathaStats.preview();
+				Config c = Config.get();
+				c.scoreboardShimmer = true;
+				c.scoreboardHideServer = true;
+				return new cleanui.feature.HudEditor(themed("cyan", m -> new SettingsScreen(fakeSkyBlockMenu(m)), mc), false);
+			}, 420, 130),
 			// panel low on the screen: the toolbar moves to the top
 			new Shot("scatha-stats-edit-low", mc -> {
 				cleanui.feature.ScathaStats.preview();
@@ -93,7 +114,7 @@ public final class Preview {
 				c.scathaStatsX = 300;
 				c.scathaStatsY = 160;
 				c.scathaStatsScale = 60;
-				return new cleanui.feature.ScathaStatsEditor(themed("cyan", m -> new ScathaSettingsScreen(fakeSkyBlockMenu(m)), mc));
+				return new cleanui.feature.HudEditor(themed("cyan", m -> new ScathaSettingsScreen(fakeSkyBlockMenu(m)), mc), true);
 			}, 100, 100),
 			new Shot("scatha-stats-small", mc -> {
 				cleanui.feature.ScathaStats.preview();

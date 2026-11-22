@@ -107,6 +107,11 @@ public final class CleanUi implements ClientModInitializer {
 		// Scatha slots: drawn over the HUD; chat hidden while a Scatha is low or the reels spin
 		HudElementRegistry.attachElementAfter(VanillaHudElements.CHAT, Identifier.fromNamespaceAndPath(ID, "scatha_slots"),
 				(g, delta) -> { cleanui.feature.ScathaStats.render(g); cleanui.feature.NucleusRun.render(g); cleanui.feature.VanguardSnake.render(g); ScathaSlots.renderHud(g); });
+		// the sidebar scoreboard in the Scatha Stats frame (setting off: Minecraft's own)
+		HudElementRegistry.replaceElement(VanillaHudElements.SCOREBOARD, vanilla -> (g, delta) -> {
+			if (cleanui.feature.ScoreboardHud.replacesVanilla()) cleanui.feature.ScoreboardHud.render(g);
+			else vanilla.extractRenderState(g, delta);
+		});
 		HudElementRegistry.replaceElement(VanillaHudElements.CHAT, chat -> (g, delta) -> {
 			if (!ScathaSlots.hideChat()) chat.extractRenderState(g, delta);
 		});

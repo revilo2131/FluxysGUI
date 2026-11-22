@@ -30,6 +30,8 @@ public final class SettingsScreen extends Window {
 	static final int ROW_H = 16, ROW_STEP = 18;
 	private static final int STYLE_Y = 80, CELL_W = (COL_W - 4) / 2, NET_Y = 152;
 	private static final int[] SCALES = {80, 90, 100, 110, 120};
+	/** The Customize HUD button, right of the API key box. */
+	private static final int HUD_W = 92;
 
 	/** A style setting shown as "Label ···· Value"; click cycles it (right-click goes back). */
 	private record Knob(String label, String tip, java.util.function.Function<Config, String> value, java.util.function.BiConsumer<Config, Integer> step) {}
@@ -108,15 +110,20 @@ public final class SettingsScreen extends Window {
 
 	@Override
 	protected void initBody() {
-		apiKey = addRenderableWidget(new EditBox(font, bx() + 5, by() + NET_Y + 16, COL_W - 10, 10, Component.literal("Hypixel API key")));
+		apiKey = addRenderableWidget(new EditBox(font, bx() + 5, by() + NET_Y + 16, COL_W - HUD_W - 14, 10, Component.literal("Hypixel API key")));
 		apiKey.setBordered(false);
 		apiKey.setMaxLength(64);
 		apiKey.setTextColor(Theme.argb(Theme.TEXT, 1f));
-		apiKey.setHint(Component.literal("Paste your Hypixel API key").withColor(Theme.TEXT_MUTED));
+		apiKey.setHint(Component.literal("Hypixel API key").withColor(Theme.TEXT_MUTED));
 		String saved = Config.get().hypixelApiKey;
 		apiKey.setValue(saved == null ? "" : saved);
 		// masked, so the key doesn't show on streams or screenshots
 		apiKey.addFormatter((text, start) -> FormattedCharSequence.forward("•".repeat(text.length()), Style.EMPTY));
+		// every HUD panel (Scatha Stats, the scoreboard): place, size and options over the game
+		addRenderableWidget(new cleanui.ui.Button(bx() + COL_W - HUD_W, by() + NET_Y + 12, HUD_W, 16, Component.literal("Customize HUD"),
+				() -> minecraft.setScreenAndShow(new HudEditor(this, false)))
+				.item(new ItemStack(Items.PAINTING))
+				.tooltip(Component.literal("Move and resize the scoreboard and Scatha Stats, with a snap grid, and pick their looks.")).body());
 		apiKey.setResponder(value -> {
 			Config.get().hypixelApiKey = value.strip();
 			Config.get().save();
@@ -173,8 +180,8 @@ public final class SettingsScreen extends Window {
 		}
 
 		// networth: personal Hypixel API key (masked) and the current status
-		Theme.divider(g, font, "NETWORTH", x, y + NET_Y, COL_W, a);
-		Theme.box(g, x, y + NET_Y + 12, COL_W, 16, Theme.SLOT, a, apiKey.isFocused() ? Theme.FRAME : Theme.LINE, a);
+		Theme.divider(g, font, "NETWORTH & HUD", x, y + NET_Y, COL_W, a);
+		Theme.box(g, x, y + NET_Y + 12, COL_W - HUD_W - 4, 16, Theme.SLOT, a, apiKey.isFocused() ? Theme.FRAME : Theme.LINE, a);
 		Networth.refreshIfStale();
 		String err = Networth.error();
 		NetworthCalc.Result nw = Networth.result();

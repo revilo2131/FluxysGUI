@@ -70,6 +70,15 @@ public final class Config {
 	public int scathaStatsGridSize = 8;
 	/** Tunnel Vision (active / cooldown / ready) and the 30 s worm spawn cooldown as bars on Scatha Stats. */
 	public boolean scathaTimers = true;
+	/** The sidebar scoreboard in the Scatha Stats look (off: Minecraft's own). Place: -1 = right edge, centred like vanilla. */
+	public boolean scoreboardFancy = true;
+	public int scoreboardX = -1, scoreboardY = -1, scoreboardScale = 100;
+	/** Title in a rainbow shimmer instead of the server's own colours. */
+	public boolean scoreboardShimmer = false;
+	/** Blank spacer lines drawn as gem dividers (off: plain gaps). */
+	public boolean scoreboardGems = true;
+	/** Hide Hypixel's date/server line ("11/22/26 m38AD") and the "www.hypixel.net" footer. */
+	public boolean scoreboardHideServer = false, scoreboardHideFooter = false;
 	/** Tunnel Vision cooldown (s): read from the pickaxe's lore or learned from "is now available", 110 until then. */
 	public int tunnelVisionCooldown = 110;
 	// Crystal Nucleus runs (also on the Scatha page)

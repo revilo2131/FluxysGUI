@@ -277,7 +277,7 @@ public final class ScathaStats {
 		boolean active = lastActivity >= 0 && System.currentTimeMillis() - lastActivity < SHOW_MS;
 		if (!Config.get().scathaStats || !(active || inHollows)) return;
 		Minecraft mc = Minecraft.getInstance();
-		if (mc.player == null || mc.gui.screen() instanceof ScathaStatsEditor) return; // the editor draws its own
+		if (mc.player == null || mc.gui.screen() instanceof HudEditor) return; // the editor draws its own
 		Config c = Config.get();
 		float s = c.scathaStatsScale / 100f;
 		int[] at = clamp(c.scathaStatsX, c.scathaStatsY, s, mc.getWindow().getGuiScaledWidth(), mc.getWindow().getGuiScaledHeight());
@@ -439,6 +439,11 @@ public final class ScathaStats {
 	 * round the top edge, and a raised title plate with the Scatha head and a shimmering title.
 	 */
 	private static void frame(GuiGraphicsExtractor g, Font font, int x, int y, int w, int h, long now) {
+		frame(g, font, x, y, w, h, now, Component.literal("Scatha Stats"), true, true);
+	}
+
+	/** The frame with any title: shimmering letters or the title's own colours, Scatha head before it or not. */
+	static void frame(GuiGraphicsExtractor g, Font font, int x, int y, int w, int h, long now, Component titleText, boolean shimmer, boolean head) {
 		g.fill(x + 2, y + 3, x + w + 2, y + h + 3, 0x66000000);                                  // shadow
 		g.fill(x, y, x + w, y + h, 0xFF120A06);                                                  // outer edge
 		g.fill(x + 1, y + 1, x + w - 1, y + 2, 0xFF000000 | GOLD);                               // gold bevel: lit top/left
@@ -471,9 +476,9 @@ public final class ScathaStats {
 			diamond(g, gx, gy, 2.6f, gem);
 		}
 		// title plate straddling the top edge
-		String title = "Scatha Stats";
-		int tw = Math.round(font.width(title) * 1.25f);
-		int pw = tw + 34, px = x + (w - pw) / 2, py = y - 7;
+		String title = titleText.getString();
+		int tw = Math.round(font.width(titleText) * 1.25f);
+		int pw = titleWidth(font, titleText, head), px = x + (w - pw) / 2, py = y - 7;
 		for (int s = 0; s < 4; s++) // little stepped wings
 			g.fill(px - 4 + s, py + 4 + s, px + pw + 4 - s, py + 5 + s, 0xFF000000 | (s == 0 ? GOLD : GOLD_DARK));
 		g.fill(px, py, px + pw, py + 15, 0xFF120A06);
@@ -482,23 +487,30 @@ public final class ScathaStats {
 		g.fill(px + 1, py + 1, px + pw - 1, py + 2, 0x60FFFFFF);
 		diamond(g, px + 4, py + 7.5f, 1.8f, GOLD);
 		diamond(g, px + pw - 4, py + 7.5f, 1.8f, GOLD);
-		ScathaSlots.item(g, ScathaSlots.scathaHead(), px + 13, py + 7.5f, 0.6f, 0.6f);
+		if (head) ScathaSlots.item(g, ScathaSlots.scathaHead(), px + 13, py + 7.5f, 0.6f, 0.6f);
 		Matrix3x2fStack pose = g.pose();
 		pose.pushMatrix();
-		pose.translate(px + 22, py + 3);
+		pose.translate(px + (head ? 22 : 11), py + 3);
 		pose.scale(1.25f, 1.25f);
-		int tx = 0;
-		for (int i = 0; i < title.length(); i++) { // a slow rainbow shimmer, letter by letter
-			String ch = String.valueOf(title.charAt(i));
-			int rgb = java.awt.Color.HSBtoRGB(((now / 2600f) + i * 0.05f) % 1f, 0.5f, 1f);
-			g.text(font, ch, tx, 0, 0xFF000000 | rgb, true);
-			tx += font.width(ch);
-		}
+		if (shimmer) {
+			int tx = 0;
+			for (int i = 0; i < title.length(); i++) { // a slow rainbow shimmer, letter by letter
+				String ch = String.valueOf(title.charAt(i));
+				int rgb = java.awt.Color.HSBtoRGB(((now / 2600f) + i * 0.05f) % 1f, 0.5f, 1f);
+				g.text(font, ch, tx, 0, 0xFF000000 | rgb, true);
+				tx += font.width(ch);
+			}
+		} else g.text(font, titleText, 0, 0, 0xFFFFFFFF, true); // the title's own colours
 		pose.popMatrix();
 	}
 
+	/** The title plate's width for this title. */
+	static int titleWidth(Font font, Component title, boolean head) {
+		return Math.round(font.width(title) * 1.25f) + (head ? 34 : 22);
+	}
+
 	/** A section line fading out at both ends, with a small gem in the middle. */
-	private static void divider(GuiGraphicsExtractor g, int x, int y, int w, long now) {
+	static void divider(GuiGraphicsExtractor g, int x, int y, int w, long now) {
 		int mid = x + w / 2;
 		horizontalFade(g, x + 10, mid - 6, y, true);
 		horizontalFade(g, mid + 6, x + w - 10, y, false);

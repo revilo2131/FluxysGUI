@@ -97,7 +97,7 @@ public final class ScathaSettingsScreen extends Window {
 		}
 		// Scatha Stats on screen: drag it around and resize it over the game
 		addRenderableWidget(new Button(x, petRowY(2) + 24, w, 18, Component.literal("Move / resize Scatha Stats"),
-				() -> minecraft.setScreenAndShow(new ScathaStatsEditor(this)))
+				() -> minecraft.setScreenAndShow(new HudEditor(this, true)))
 				.item(new ItemStack(Items.COMPASS))
 				.tooltip(Component.literal("Place the Scatha Stats panel anywhere and pick its size, with a grid to line it up.")).body());
 	}
