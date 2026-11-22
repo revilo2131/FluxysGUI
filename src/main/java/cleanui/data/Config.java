@@ -63,6 +63,15 @@ public final class Config {
 	public long statWorms = 0, statScathas = 0;
 	public int[] statPets = new int[3];
 	public int statSincePet = 0;
+	/** Scatha Stats on screen: top-left corner (GUI pixels, title plate included) and size in percent; kept on screen when drawn. */
+	public int scathaStatsX = 6, scathaStatsY = 5, scathaStatsScale = 100;
+	/** While moving it in the editor: snap to a grid of this many pixels. */
+	public boolean scathaStatsGrid = true;
+	public int scathaStatsGridSize = 8;
+	/** Tunnel Vision (active / cooldown / ready) and the 30 s worm spawn cooldown as bars on Scatha Stats. */
+	public boolean scathaTimers = true;
+	/** Tunnel Vision cooldown (s): read from the pickaxe's lore or learned from "is now available", 110 until then. */
+	public int tunnelVisionCooldown = 110;
 	// Crystal Nucleus runs (also on the Scatha page)
 	/** Five crystal slots and a run timer on the HUD during a run. */
 	public boolean nucleusTracker = true;

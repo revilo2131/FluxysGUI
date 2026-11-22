@@ -37,7 +37,9 @@ public final class ScathaSettingsScreen extends Window {
 			new SettingsScreen.Toggle("Music","Note block build-up when the pet is certain, and a drop as the rarity shows. Needs Sounds on.",
 					c -> c.scathaMusic, c -> c.scathaMusic = !c.scathaMusic),
 			new SettingsScreen.Toggle("Scatha Stats", "A panel while you farm (it shows after a worm or Scatha near you, hides 10 min after the last): pets by rarity, Stoneworms and Scathas killed all time and this session (all-time numbers update from your bestiary), spawns since the last Scatha, Scathas since your last pet.",
-					c -> c.scathaStats, c -> c.scathaStats = !c.scathaStats));
+					c -> c.scathaStats, c -> c.scathaStats = !c.scathaStats),
+					new SettingsScreen.Toggle("Timers", "Bars on Scatha Stats: Tunnel Vision (active, cooldown, ready; starts tracking the first time you use it) and the 30 s worm spawn cooldown after every worm or Scatha.",
+							c -> c.scathaTimers, c -> c.scathaTimers = !c.scathaTimers));
 
 	private static final int TEST_STEP = 20;
 
@@ -93,6 +95,11 @@ public final class ScathaSettingsScreen extends Window {
 			addRenderableWidget(new Button(x + w - 20, ry, 20, 18, Component.literal("+"), () -> addPet(r, 1))
 					.tooltip(Component.literal("One more " + names[i].toLowerCase())).body());
 		}
+		// Scatha Stats on screen: drag it around and resize it over the game
+		addRenderableWidget(new Button(x, petRowY(2) + 24, w, 18, Component.literal("Move / resize Scatha Stats"),
+				() -> minecraft.setScreenAndShow(new ScathaStatsEditor(this)))
+				.item(new ItemStack(Items.COMPASS))
+				.tooltip(Component.literal("Place the Scatha Stats panel anywhere and pick its size, with a grid to line it up.")).body());
 	}
 
 	private static final int[] PET_COLORS = {0x5555FF, 0xAA00AA, 0xFFAA00};

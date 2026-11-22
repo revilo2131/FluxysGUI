@@ -1,6 +1,7 @@
 package cleanui.feature;
 
 import cleanui.data.Config;
+import cleanui.skyblock.AbilityParser;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -29,7 +30,21 @@ public final class ScathaStats {
 	private static final Pattern MOB = Pattern.compile("(?<!Flaming )\\b(Stoneworm|Worm|Scatha)\\D*?([\\d.,]+)([kKmM]?)(?:/[\\d.,]+[kKmM]?)?❤");
 	private static final float LOW = 3, NEAR = 20, KILL_RANGE = 16;
 	private static final long SHOW_MS = 10 * 60_000;
-	private static final int W = 222;
+	/** After a worm or Scatha spawns, no other can for 30 s; Tunnel Vision lasts 30 s. */
+	private static final long SPAWN_COOLDOWN_MS = 30_000, TUNNEL_VISION_MS = 30_000;
+	private static final int W = 222, H_BASE = 142, H_TIMERS = 172;
+	/** Room above the frame for the title plate. */
+	private static final int TOP = 7;
+	/** The panel's box at 100%: frame, title plate and shadow. */
+	public static final int BOX_W = W + 2;
+
+	public static int boxH() {
+		return TOP + bodyH() + 3;
+	}
+
+	private static int bodyH() {
+		return Config.get().scathaTimers ? H_TIMERS : H_BASE;
+	}
 	private static final int[] RARITY = {0x5555FF, 0xAA00AA, 0xFFAA00};
 	private static final int GOLD = 0xE8B84A, GOLD_DARK = 0x8A5A1A, VIOLET = 0x8A4AE0;
 
@@ -39,6 +54,9 @@ public final class ScathaStats {
 	private static final Set<Integer> counted = new HashSet<>();
 	private static int sessionWorms, sessionScathas, sinceScatha;
 	private static long lastSpawn = -1, lastActivity = -1;
+	/** Tunnel Vision: when it was used, when its 30 s end, when it's off cooldown (ms; -1 = not seen yet). */
+	private static long tvUsed = -1, tvActiveEnd = -1, tvReady = -1;
+	private static boolean tvKnown;
 
 	private static boolean inHollows;
 	private static final Set<String> logged = new HashSet<>();
@@ -122,12 +140,59 @@ public final class ScathaStats {
 	/** "PET DROP! Scatha": one more pet of that rarity, and the since-last-pet count starts again. */
 	public static void onChat(Component message) {
 		String s = ChatFormatting.stripFormatting(message.getString());
+		tunnelVision(AbilityParser.parse(s), System.currentTimeMillis());
 		if (!s.contains("PET DROP!") || !s.contains("Scatha")) return;
 		Config c = Config.get();
 		int r = ScathaSlots.dropRarity(message);
 		if (r >= 0) c.statPets[r]++;
 		c.statSincePet = 0;
 		c.save();
+	}
+
+	/**
+	 * Tunnel Vision from chat: used = 30 s active, then the cooldown (from the pickaxe's lore, or what
+	 * "is now available" measured last time); "on cooldown for Ns" corrects it, but only once Tunnel
+	 * Vision has been seen, since other pickaxe abilities say the same.
+	 */
+	static void tunnelVision(AbilityParser.Event e, long now) {
+		if (e == null) return;
+		Config c = Config.get();
+		switch (e.kind()) {
+			case USED -> {
+				tvKnown = true;
+				tvUsed = now;
+				tvActiveEnd = now + TUNNEL_VISION_MS;
+				tvReady = now + c.tunnelVisionCooldown * 1000L;
+			}
+			case EXPIRED -> tvActiveEnd = Math.min(tvActiveEnd, now);
+			case AVAILABLE -> {
+				if (tvUsed > 0) {
+					long measured = Math.round((now - tvUsed) / 1000.0);
+					if (measured >= 40 && measured <= 300 && measured != c.tunnelVisionCooldown) {
+						c.tunnelVisionCooldown = (int) measured;
+						c.save();
+					}
+				}
+				tvKnown = true;
+				tvReady = now;
+				tvActiveEnd = Math.min(tvActiveEnd, now);
+			}
+			case COOLDOWN -> {
+				if (tvKnown) tvReady = now + e.seconds() * 1000L;
+			}
+		}
+	}
+
+	/** Holding a pickaxe whose lore names Tunnel Vision: take its cooldown from there. */
+	private static void readPickaxe(Minecraft mc) {
+		var lore = mc.player.getMainHandItem().get(net.minecraft.core.component.DataComponents.LORE);
+		if (lore == null) return;
+		int cd = AbilityParser.loreCooldown(lore.lines().stream().map(l -> ChatFormatting.stripFormatting(l.getString())).toList());
+		Config c = Config.get();
+		if (cd > 0 && cd != c.tunnelVisionCooldown) {
+			c.tunnelVisionCooldown = cd;
+			c.save();
+		}
 	}
 
 	public static void tick(Minecraft mc) {
@@ -137,6 +202,7 @@ public final class ScathaStats {
 			return;
 		}
 		if (mc.player.tickCount % 10 == 0) readBestiary(mc);
+		if (mc.player.tickCount % 40 == 0) readPickaxe(mc);
 		if (mc.player.tickCount % 20 == 0) inHollows = inHollows(mc);
 		Map<Integer, Seen> seen = new HashMap<>();
 		for (Entity e : mc.level.entitiesForRendering()) {
@@ -195,8 +261,14 @@ public final class ScathaStats {
 		sessionWorms = 12;
 		sessionScathas = 8;
 		sinceScatha = 1;
-		lastSpawn = System.currentTimeMillis() - 12_000;
-		lastActivity = System.currentTimeMillis();
+		long now = System.currentTimeMillis();
+		lastSpawn = now - 12_000;
+		lastActivity = now;
+		// Tunnel Vision used 48 s ago: 30 s active are over, cooling down
+		tvKnown = true;
+		tvUsed = now - 48_000;
+		tvActiveEnd = tvUsed + TUNNEL_VISION_MS;
+		tvReady = tvUsed + c.tunnelVisionCooldown * 1000L;
 	}
 
 	// ---- drawing ----
@@ -205,11 +277,36 @@ public final class ScathaStats {
 		boolean active = lastActivity >= 0 && System.currentTimeMillis() - lastActivity < SHOW_MS;
 		if (!Config.get().scathaStats || !(active || inHollows)) return;
 		Minecraft mc = Minecraft.getInstance();
+		if (mc.player == null || mc.gui.screen() instanceof ScathaStatsEditor) return; // the editor draws its own
+		Config c = Config.get();
+		float s = c.scathaStatsScale / 100f;
+		int[] at = clamp(c.scathaStatsX, c.scathaStatsY, s, mc.getWindow().getGuiScaledWidth(), mc.getWindow().getGuiScaledHeight());
+		drawAt(g, at[0], at[1], s);
+	}
+
+	/** Keeps a panel of this scale fully on a screen of this size. */
+	public static int[] clamp(int x, int y, float scale, int screenW, int screenH) {
+		int w = Math.round(BOX_W * scale), h = Math.round(boxH() * scale);
+		return new int[]{Math.max(0, Math.min(x, screenW - w)), Math.max(0, Math.min(y, screenH - h))};
+	}
+
+	/** The panel with its box's top-left corner at (x, y), scaled. */
+	public static void drawAt(GuiGraphicsExtractor g, int x, int y, float scale) {
+		Minecraft mc = Minecraft.getInstance();
 		if (mc.player == null) return;
+		Matrix3x2fStack pose = g.pose();
+		pose.pushMatrix();
+		pose.translate(x, y);
+		pose.scale(scale, scale);
+		draw(g, mc, 0, TOP);
+		pose.popMatrix();
+	}
+
+	private static void draw(GuiGraphicsExtractor g, Minecraft mc, int x, int y) {
 		Font font = mc.font;
 		Config c = Config.get();
 		long now = System.currentTimeMillis();
-		int x = 6, y = 12, h = 142;
+		int h = bodyH();
 		frame(g, font, x, y, W, h, now);
 		int cx = x + W / 2;
 		// pets by rarity
@@ -241,6 +338,53 @@ public final class ScathaStats {
 		line(g, font, x, ly + 22, "⏱", 0x55FFFF, spawn, 0xDDDDDD);
 		var pos = mc.player.blockPosition();
 		line(g, font, x, ly + 33, "⌖", 0xAAAAFF, pos.getX() + " " + pos.getY() + " " + pos.getZ() + "  facing " + facing(mc.player.getYRot()), 0xBBBBBB);
+		if (c.scathaTimers) timers(g, font, x, ly + 46, now);
+	}
+
+	/** Tunnel Vision (active, cooling down, ready) and the worm spawn cooldown, as bars. */
+	private static void timers(GuiGraphicsExtractor g, Font font, int x, int y, long now) {
+		divider(g, x, y, W, now);
+		int ty = y + 8;
+		// Tunnel Vision
+		if (!tvKnown) bar(g, font, x, ty, "⛏", 0x55FFFF, "Tunnel Vision", "use it to track", 0, 0x777777, false, now);
+		else if (now < tvActiveEnd)
+			bar(g, font, x, ty, "⛏", 0x55FFFF, "Tunnel Vision", "ACTIVE " + secs(tvActiveEnd - now), (tvActiveEnd - now) / (float) TUNNEL_VISION_MS, 0x55FFFF, false, now);
+		else if (now < tvReady) {
+			long total = tvUsed > 0 ? tvReady - tvUsed : Config.get().tunnelVisionCooldown * 1000L;
+			bar(g, font, x, ty, "⛏", 0x55FFFF, "Tunnel Vision", clock(tvReady - now), 1 - (tvReady - now) / (float) Math.max(1, total), 0xFFAA00, false, now);
+		} else bar(g, font, x, ty, "⛏", 0x55FFFF, "Tunnel Vision", "READY", 1, 0x55FF55, true, now);
+		// worm spawn cooldown: 30 s after any worm or Scatha spawned
+		int sy = ty + 13;
+		long since = lastSpawn < 0 ? Long.MAX_VALUE : now - lastSpawn;
+		if (since < SPAWN_COOLDOWN_MS)
+			bar(g, font, x, sy, "⌛", 0xFF6AD5, "Spawn cooldown", secs(SPAWN_COOLDOWN_MS - since), since / (float) SPAWN_COOLDOWN_MS, 0xFF5555, false, now);
+		else bar(g, font, x, sy, "⌛", 0xFF6AD5, "Spawn cooldown", "CAN SPAWN", 1, 0x55FF55, lastSpawn >= 0, now);
+	}
+
+	/** Icon and label on the left, a bar on the right filled to {@code fill} (0..1) with its text centred. */
+	private static void bar(GuiGraphicsExtractor g, Font font, int x, int y, String icon, int iconRgb, String label, String text,
+	                        float fill, int rgb, boolean pulse, long now) {
+		line(g, font, x, y, icon, iconRgb, label, 0xDDDDDD);
+		int bx = x + 104, bw = W - 104 - 9, by = y - 2, bh = 11;
+		g.fill(bx, by, bx + bw, by + bh, 0xC0000000);
+		outline(g, bx - 1, by - 1, bw + 2, bh + 2, NucleusFinale.argb(rgb, 0.7f));
+		float glow = pulse ? 0.75f + 0.25f * (float) Math.sin(now / 220.0) : 1f;
+		int fw = Math.round(bw * Math.max(0, Math.min(1, fill)));
+		if (fw > 0) {
+			g.fillGradient(bx, by, bx + fw, by + bh, NucleusFinale.argb(NucleusFinale.mix(rgb, 0xFFFFFF, 0.35f), 0.85f * glow), NucleusFinale.argb(NucleusFinale.mix(rgb, 0x000000, 0.35f), 0.85f * glow));
+			g.fill(bx, by, bx + fw, by + 1, NucleusFinale.argb(0xFFFFFF, 0.35f * glow)); // lit top edge
+		}
+		for (int t = 1; t < 4; t++) g.fill(bx + bw * t / 4, by + bh - 3, bx + bw * t / 4 + 1, by + bh, 0x50FFFFFF); // quarter ticks
+		g.text(font, text, bx + (bw - font.width(text)) / 2, by + 2, 0xFFFFFFFF, true);
+	}
+
+	private static String secs(long ms) {
+		return (ms + 999) / 1000 + "s";
+	}
+
+	private static String clock(long ms) {
+		long s = (ms + 999) / 1000;
+		return s < 60 ? s + "s" : s / 60 + "m " + String.format("%02d", s % 60) + "s";
 	}
 
 	private static String ago(long ms) {

@@ -76,6 +76,33 @@ public final class Preview {
 			new Shot("nucleus-settings", mc -> themed("cyan", m -> new cleanui.feature.NucleusSettingsScreen(fakeSkyBlockMenu(m)), mc), -1, -1),
 			new Shot("scatha-settings", mc -> themed("cyan", m -> new cleanui.feature.ScathaSettingsScreen(fakeSkyBlockMenu(m)), mc), -1, -1),
 			new Shot("scatha-stats", mc -> { cleanui.feature.ScathaStats.preview(); return null; }, -1, -1),
+			// the move/resize editor, panel moved off the corner, grid on, mouse over the panel
+			new Shot("scatha-stats-edit", mc -> {
+				cleanui.feature.ScathaStats.preview();
+				Config c = Config.get();
+				c.scathaStatsX = 40;
+				c.scathaStatsY = 64;
+				c.scathaStatsScale = 80;
+				c.scathaStatsGrid = true;
+				return new cleanui.feature.ScathaStatsEditor(themed("cyan", m -> new ScathaSettingsScreen(fakeSkyBlockMenu(m)), mc));
+			}, 120, 120),
+			// panel low on the screen: the toolbar moves to the top
+			new Shot("scatha-stats-edit-low", mc -> {
+				cleanui.feature.ScathaStats.preview();
+				Config c = Config.get();
+				c.scathaStatsX = 300;
+				c.scathaStatsY = 160;
+				c.scathaStatsScale = 60;
+				return new cleanui.feature.ScathaStatsEditor(themed("cyan", m -> new ScathaSettingsScreen(fakeSkyBlockMenu(m)), mc));
+			}, 100, 100),
+			new Shot("scatha-stats-small", mc -> {
+				cleanui.feature.ScathaStats.preview();
+				Config c = Config.get();
+				c.scathaStatsX = 700;
+				c.scathaStatsY = 300;
+				c.scathaStatsScale = 70;
+				return null;
+			}, -1, -1),
 			new Shot("vanguard-settings", mc -> themed("cyan", m -> new cleanui.feature.VanguardSettingsScreen(fakeSkyBlockMenu(m)), mc), -1, -1),
 			// screenshots land 1.75s after the shot starts: mid-roll, and just after a legendary landing
 			new Shot("roulette-roll", mc -> roulette(-2, 1500), -1, -1),
