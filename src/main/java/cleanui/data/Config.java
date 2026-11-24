@@ -35,6 +35,8 @@ public final class Config {
 	public boolean calendar = true;
 	public boolean bestiary = true;
 	public boolean pets = true;
+	/** Slayer hub and boss pages. */
+	public boolean slayer = true;
 	/** Skill and collection level tracks. */
 	public boolean tracks = true;
 	/** Restyle every other Hypixel menu (keeps its own controls). */

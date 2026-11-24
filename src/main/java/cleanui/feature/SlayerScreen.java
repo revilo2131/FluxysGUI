@@ -57,6 +57,7 @@ public final class SlayerScreen extends MenuPage {
 	}
 
 	public static SlayerScreen forTitle(String title, AbstractContainerScreen<?> original) {
+		if (!cleanui.data.Config.get().slayer) return null;
 		if (title.equals(HUB_TITLE)) return new SlayerScreen(null, original);
 		Boss b = SlayerParser.boss(title);
 		// a boss's own menu is titled exactly by its name; "... RNG Meter" etc. go elsewhere

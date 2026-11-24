@@ -28,6 +28,8 @@ import java.util.function.Predicate;
 public final class SettingsScreen extends Window {
 	private static final int SWATCH_W = 36, SWATCH_H = 22, SWATCH_STEP = 40, SWATCH_ROW = 26, PER_ROW = 5, COL_W = 200, RIGHT_X = 214;
 	static final int ROW_H = 16, ROW_STEP = 18;
+	/** Page toggles: 11 rows, a little tighter so they fit the body. */
+	private static final int PAGE_Y = 12, PAGE_STEP = 17;
 	private static final int STYLE_Y = 80, CELL_W = (COL_W - 4) / 2, NET_Y = 152;
 	private static final int[] SCALES = {80, 90, 100, 110, 120};
 	/** The Customize HUD button, right of the API key box. */
@@ -64,6 +66,7 @@ public final class SettingsScreen extends Window {
 			new Toggle("Calendar", "Calendar and Events.", c -> c.calendar, c -> c.calendar = !c.calendar),
 			new Toggle("Bestiary", "Bestiary and its pages.", c -> c.bestiary, c -> c.bestiary = !c.bestiary),
 			new Toggle("Pets", "Your pets list.", c -> c.pets, c -> c.pets = !c.pets),
+			new Toggle("Slayer", "Slayer hub and boss pages.", c -> c.slayer, c -> c.slayer = !c.slayer),
 			new Toggle("Level tracks", "A skill's or collection's tiers and rewards.", c -> c.tracks, c -> c.tracks = !c.tracks),
 			new Toggle("HOTM tree", "Heart of the Mountain and Heart of the Forest.", c -> c.hotm, c -> c.hotm = !c.hotm),
 			new Toggle("Restyle other menus", "Every other Hypixel menu, with its own controls.", c -> c.restyleMenus, c -> c.restyleMenus = !c.restyleMenus));
@@ -198,7 +201,7 @@ public final class SettingsScreen extends Window {
 		Toggle hovered = null;
 		for (int i = 0; i < TOGGLES.size(); i++) {
 			Toggle t = TOGGLES.get(i);
-			int ry = y + 14 + i * ROW_STEP;
+			int ry = y + PAGE_Y + i * PAGE_STEP;
 			boolean over = mouseX >= rx && mouseX < rx + rw && mouseY >= ry && mouseY < ry + ROW_H;
 			if (over) hovered = t;
 			boolean on = t.get().test(c);
@@ -256,7 +259,7 @@ public final class SettingsScreen extends Window {
 		}
 		int rx = x + RIGHT_X, rw = BW - RIGHT_X;
 		for (int i = 0; i < TOGGLES.size(); i++) {
-			int ry = y + 14 + i * ROW_STEP;
+			int ry = y + PAGE_Y + i * PAGE_STEP;
 			if (event.x() >= rx && event.x() < rx + rw && event.y() >= ry && event.y() < ry + ROW_H) {
 				TOGGLES.get(i).flip().accept(c);
 				c.save();
