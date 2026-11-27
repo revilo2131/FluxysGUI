@@ -30,6 +30,7 @@ clean menus for Hypixel's SkyBlock pages, plus mining "dopamine" animations.
 | Scatha Stats panel (pets, Stoneworm/Scatha kills, bestiary sync, pet editor, Tunnel Vision + 30 s spawn cooldown bars) | `ScathaStats`, `ScathaSettingsScreen`, `skyblock/AbilityParser` | shows in the Crystal Hollows |
 | Fancy sidebar scoreboard (Scatha Stats frame; title, spacers, date line, footer options) | `ScoreboardHud` | any server with a sidebar |
 | Customize HUD: move / resize / options for every panel (grid snap, corner drag, scroll, arrow nudge) | `HudEditor` | Settings → "Customize HUD", or Scatha settings → "Move / resize Scatha Stats" |
+| Hand animations: swing style / motion / speed / strength, item position, pull-out styles (main-hand item only) | `HandAnim`, `HandAnimScreen`, `mixin/ItemInHandRendererMixin`, `mixin/LivingEntityMixin` | Settings → "Hand anims" (Test swing / Test pull-out) |
 | Crystal Nucleus runs: tracker, 6 finales, best-drop popup | `NucleusRun`, `NucleusFinale`, `FinaleModels` (3D), `FinaleScenes` (2D), `NucleusSettingsScreen` | `/nucleustest [gauntlet\|altar\|reactor\|constellation\|crown\|golem]` |
 | Vanguard corpse: ouroboros snake or lockpick | `VanguardSnake`, `VanguardLock`, `VanguardSettingsScreen` | `/testvanguard`, `/testlock` `[dye\|locket\|wisp\|key]` |
 

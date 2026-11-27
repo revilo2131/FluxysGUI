@@ -86,6 +86,17 @@ public final class Preview {
 				c.scathaStatsGrid = true;
 				return new cleanui.feature.HudEditor(themed("cyan", m -> new ScathaSettingsScreen(fakeSkyBlockMenu(m)), mc), true);
 			}, 120, 120),
+			// hand animations screen: the sword moved, turned and bigger, mouse on a slider
+			new Shot("hand-anims", mc -> {
+				Config c = Config.get();
+				c.handX = -10;
+				c.handY = 5;
+				c.handScale = 130;
+				c.handRotZ = -30;
+				c.swingStyle = "SPIN";
+				return new cleanui.feature.HandAnimScreen(themed("cyan", m -> new SettingsScreen(fakeSkyBlockMenu(m)), mc));
+			}, 120, 112),
+			new Shot("settings-hand", mc -> themed("cyan", m -> new SettingsScreen(fakeSkyBlockMenu(m)), mc), -1, -1),
 			// fancy scoreboard on the HUD (sample lines), next to Scatha Stats
 			new Shot("scoreboard", mc -> {
 				cleanui.feature.ScathaStats.preview();

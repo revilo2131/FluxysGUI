@@ -122,6 +122,11 @@ public final class SettingsScreen extends Window {
 		apiKey.setValue(saved == null ? "" : saved);
 		// masked, so the key doesn't show on streams or screenshots
 		apiKey.addFormatter((text, start) -> FormattedCharSequence.forward("•".repeat(text.length()), Style.EMPTY));
+		// the empty cell next to Size: hand animations
+		int[] hand = cellPos(STYLES.size());
+		addRenderableWidget(new cleanui.ui.Button(hand[0], hand[1], CELL_W, ROW_H, Component.literal("Hand anims"),
+				() -> minecraft.setScreenAndShow(new HandAnimScreen(this)))
+				.tooltip(Component.literal("How your held item swings, where it sits, and how it comes up when you switch items.")).body());
 		// every HUD panel (Scatha Stats, the scoreboard): place, size and options over the game
 		addRenderableWidget(new cleanui.ui.Button(bx() + COL_W - HUD_W, by() + NET_Y + 12, HUD_W, 16, Component.literal("Customize HUD"),
 				() -> minecraft.setScreenAndShow(new HudEditor(this, false)))

@@ -81,6 +81,18 @@ public final class Config {
 	public boolean scoreboardGems = true;
 	/** Hide Hypixel's date/server line ("11/22/26 m38AD") and the "www.hypixel.net" footer. */
 	public boolean scoreboardHideServer = false, scoreboardHideFooter = false;
+	/**
+	 * Hand animations, for the item in your main hand only (the empty hand and the offhand stay vanilla).
+	 * Swing: style VANILLA / SMOOTH / CHOP / SPIN / PUNCH / SLIDE; motion FULL / ROTATE (no sliding) / NONE (still);
+	 * speed and strength in percent. Position: offsets in hundredths of a block, scale in percent, rotation in degrees.
+	 * Pull-out: VANILLA / RISE / NONE / SLIDE / SPIN / FLIP / ZOOM / DROP, speed in percent. Cooldown dip: vanilla's
+	 * lowered item while the attack recharges (only with the VANILLA pull-out).
+	 */
+	public boolean handAnim = true;
+	public String swingStyle = "VANILLA", swingMotion = "FULL", equipStyle = "VANILLA";
+	public int swingSpeed = 100, swingStrength = 100, equipSpeed = 100;
+	public int handX = 0, handY = 0, handZ = 0, handScale = 100, handRotX = 0, handRotY = 0, handRotZ = 0;
+	public boolean cooldownDip = true;
 	/** Tunnel Vision cooldown (s): read from the pickaxe's lore or learned from "is now available", 110 until then. */
 	public int tunnelVisionCooldown = 110;
 	// Crystal Nucleus runs (also on the Scatha page)
